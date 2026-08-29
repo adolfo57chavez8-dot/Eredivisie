@@ -15,6 +15,7 @@ export type Database = {
           correo: string;
         };
         Update: Partial<Database["public"]["Tables"]["usuarios"]["Row"]>;
+        Relationships: [];
       };
       clubes: {
         Row: {
@@ -30,6 +31,7 @@ export type Database = {
           pais: string;
         };
         Update: Partial<Database["public"]["Tables"]["clubes"]["Row"]>;
+        Relationships: [];
       };
       competiciones: {
         Row: {
@@ -45,6 +47,7 @@ export type Database = {
           tipo: "liga" | "copa" | "internacional";
         };
         Update: Partial<Database["public"]["Tables"]["competiciones"]["Row"]>;
+        Relationships: [];
       };
       campeones: {
         Row: {
@@ -60,6 +63,7 @@ export type Database = {
           competicion_id: string;
         };
         Update: Partial<Database["public"]["Tables"]["campeones"]["Row"]>;
+        Relationships: [];
       };
       partidos: {
         Row: {
@@ -84,6 +88,7 @@ export type Database = {
           goles_visitante: number;
         };
         Update: Partial<Database["public"]["Tables"]["partidos"]["Row"]>;
+        Relationships: [];
       };
       rankings: {
         Row: {
@@ -99,6 +104,7 @@ export type Database = {
           club_id: string;
         };
         Update: Partial<Database["public"]["Tables"]["rankings"]["Row"]>;
+        Relationships: [];
       };
       finales: {
         Row: {
@@ -123,6 +129,7 @@ export type Database = {
           goles_visitante: number;
         };
         Update: Partial<Database["public"]["Tables"]["finales"]["Row"]>;
+        Relationships: [];
       };
       enfrentamientos: {
         Row: {
@@ -143,7 +150,12 @@ export type Database = {
           competicion_id: string;
         };
         Update: Partial<Database["public"]["Tables"]["enfrentamientos"]["Row"]>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 };

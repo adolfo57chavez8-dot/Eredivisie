@@ -54,7 +54,7 @@ export default function CampeonesAdminPage() {
           titulos: existente.titulos + 1,
           ultimo_titulo: anio,
           primer_titulo: existente.primer_titulo ?? anio,
-        } as never)
+        })
         .eq("id", existente.id));
     } else {
       // Si es nuevo, se agrega con 1 título
