@@ -32,12 +32,18 @@ export default function CampeonesAdminPage() {
     setCargando(true);
 
     // Busca si el club ya es campeón registrado en esta competición
-    const { data: existente } = await supabase
+    const { data: existenteData } = await supabase
       .from("campeones")
       .select("id, titulos, primer_titulo")
       .eq("competicion_id", competicionId)
       .eq("club_id", clubId)
       .maybeSingle();
+
+    const existente = existenteData as {
+      id: string;
+      titulos: number;
+      primer_titulo: number | null;
+    } | null;
 
     let error;
     if (existente) {
@@ -48,7 +54,7 @@ export default function CampeonesAdminPage() {
           titulos: existente.titulos + 1,
           ultimo_titulo: anio,
           primer_titulo: existente.primer_titulo ?? anio,
-        })
+        } as never)
         .eq("id", existente.id));
     } else {
       // Si es nuevo, se agrega con 1 título
