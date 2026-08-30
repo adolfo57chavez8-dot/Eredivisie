@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getFiltroClubes } from "@/lib/competiciones";
+import BuscadorClub, { ClubOpcion } from "@/components/BuscadorClub";
 
 type CompeticionOpcion = { id: string; nombre: string; slug: string };
-type ClubOpcion = { id: string; nombre: string; pais: string };
 
 export default function ResultadosAdminPage() {
   const supabase = createClient();
@@ -25,7 +25,6 @@ export default function ResultadosAdminPage() {
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
 
-  // Carga la lista de competiciones (con su slug) al entrar a la página
   useEffect(() => {
     supabase
       .from("competiciones")
@@ -35,11 +34,8 @@ export default function ResultadosAdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Cada vez que cambia la competición elegida, se vuelve a cargar la
-  // lista de clubes según a qué competición pertenece:
-  //  - Liga/Copa/Super Copa de Holanda -> solo clubes de Holanda
-  //  - Champions/Europa League/Conference/Super Copa de Europa -> clubes europeos (UEFA), incluye Holanda
-  //  - Mundial de Clubes -> todos los clubes de todos los países
+  // Al cambiar de competición se vuelve a cargar la lista de clubes según
+  // corresponda: Holanda / Europa (UEFA, incluye Holanda) / Mundial (todos)
   useEffect(() => {
     if (!competicionId) {
       setClubes([]);
@@ -56,12 +52,10 @@ export default function ResultadosAdminPage() {
     } else if (filtro === "europa") {
       consulta = consulta.eq("confederacion", "UEFA");
     }
-    // "mundial" -> sin filtro, se muestran todos los clubes
 
     consulta.then(({ data }) => {
       setClubes(data ?? []);
       setCargandoClubes(false);
-      // Si el club que estaba elegido ya no está en la nueva lista, se limpia
       setLocalId((actual) => (data?.some((c) => c.id === actual) ? actual : ""));
       setVisitanteId((actual) => (data?.some((c) => c.id === actual) ? actual : ""));
     });
@@ -121,13 +115,14 @@ export default function ResultadosAdminPage() {
 
   const clubLocal = clubes.find((c) => c.id === localId);
   const clubVisitante = clubes.find((c) => c.id === visitanteId);
+  const filtro = getFiltroClubes(competiciones.find((c) => c.id === competicionId)?.slug);
 
   return (
     <div>
       <h1 className="font-display text-3xl mb-1">Cargar resultado</h1>
       <p className="text-tinta/60 mb-6">
-        Manualmente o subiendo una foto de evidencia. El ranking (puntos y
-        partidos jugados) se recalcula automáticamente al guardar.
+        Manualmente o subiendo una foto de evidencia. El ranking se recalcula
+        automáticamente al guardar.
       </p>
 
       <form onSubmit={guardarResultado} className="bg-white border border-tinta/10 rounded-lg p-5 space-y-4 max-w-xl">
@@ -148,12 +143,9 @@ export default function ResultadosAdminPage() {
           </select>
           {competicionId && (
             <p className="text-xs text-tinta/50 mt-1">
-              {getFiltroClubes(competiciones.find((c) => c.id === competicionId)?.slug) === "holanda" &&
-                "Mostrando solo clubes de Holanda."}
-              {getFiltroClubes(competiciones.find((c) => c.id === competicionId)?.slug) === "europa" &&
-                "Mostrando clubes europeos (incluye Holanda)."}
-              {getFiltroClubes(competiciones.find((c) => c.id === competicionId)?.slug) === "mundial" &&
-                "Mostrando clubes de todo el mundo."}
+              {filtro === "holanda" && "Mostrando solo clubes de Holanda."}
+              {filtro === "europa" && "Mostrando clubes europeos (incluye Holanda)."}
+              {filtro === "mundial" && "Mostrando clubes de todo el mundo."}
             </p>
           )}
         </div>
@@ -183,45 +175,25 @@ export default function ResultadosAdminPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 items-end">
-          <div>
-            <label className="block text-sm font-medium mb-1">Club local</label>
-            <select
-              required
-              disabled={!competicionId || cargandoClubes}
-              value={localId}
-              onChange={(e) => setLocalId(e.target.value)}
-              className="w-full border border-tinta/20 rounded px-3 py-2 disabled:bg-crema"
-            >
-              <option value="">
-                {!competicionId ? "Elige antes una competición" : cargandoClubes ? "Cargando…" : "Selecciona…"}
-              </option>
-              {clubes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre} ({c.pais})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Club visitante</label>
-            <select
-              required
-              disabled={!competicionId || cargandoClubes}
-              value={visitanteId}
-              onChange={(e) => setVisitanteId(e.target.value)}
-              className="w-full border border-tinta/20 rounded px-3 py-2 disabled:bg-crema"
-            >
-              <option value="">
-                {!competicionId ? "Elige antes una competición" : cargandoClubes ? "Cargando…" : "Selecciona…"}
-              </option>
-              {clubes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre} ({c.pais})
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <BuscadorClub
+            label="Equipo local"
+            clubes={clubes}
+            value={localId}
+            onChange={setLocalId}
+            excluirId={visitanteId || undefined}
+            disabled={!competicionId || cargandoClubes}
+            deshabilitadoTexto={!competicionId ? "Elige antes una competición" : "Cargando…"}
+          />
+          <BuscadorClub
+            label="Equipo visitante"
+            clubes={clubes}
+            value={visitanteId}
+            onChange={setVisitanteId}
+            excluirId={localId || undefined}
+            disabled={!competicionId || cargandoClubes}
+            deshabilitadoTexto={!competicionId ? "Elige antes una competición" : "Cargando…"}
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -248,7 +220,7 @@ export default function ResultadosAdminPage() {
         </div>
 
         {clubLocal && clubVisitante && (
-          <p className="text-center bg-campo text-crema rounded p-3 font-display text-lg">
+          <p className="text-center bg-campo text-crema rounded p-3 font-display text-lg break-words">
             {clubLocal.nombre} ({clubLocal.pais}) {golesLocal} - {golesVisitante} ({clubVisitante.pais}){" "}
             {clubVisitante.nombre}
           </p>

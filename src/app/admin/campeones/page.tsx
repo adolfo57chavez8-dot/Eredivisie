@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getFiltroClubes } from "@/lib/competiciones";
+import BuscadorClub, { ClubOpcion } from "@/components/BuscadorClub";
 
 type CompeticionOpcion = { id: string; nombre: string; slug: string };
-type ClubOpcion = { id: string; nombre: string; pais: string };
 
 export default function CampeonesAdminPage() {
   const supabase = createClient();
@@ -116,8 +116,9 @@ export default function CampeonesAdminPage() {
     <div>
       <h1 className="font-display text-3xl mb-1">Campeones</h1>
       <p className="text-tinta/60 mb-6">
-        Si el club ya existe en la tabla de campeones de la competición, se le
-        suma 1 título. Si es nuevo, se agrega con 1 título.
+        Uso manual: normalmente el campeón se registra solo al guardar una
+        final en «Finales». Usa esta pantalla solo para corregir o cargar un
+        título suelto.
       </p>
 
       <form onSubmit={registrarTitulo} className="bg-white border border-tinta/10 rounded-lg p-5 space-y-4 max-w-xl">
@@ -136,23 +137,14 @@ export default function CampeonesAdminPage() {
           </select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Club campeón</label>
-          <select
-            required
-            disabled={!competicionId || cargandoClubes}
-            value={clubId}
-            onChange={(e) => setClubId(e.target.value)}
-            className="w-full border border-tinta/20 rounded px-3 py-2 disabled:bg-crema"
-          >
-            <option value="">
-              {!competicionId ? "Elige antes una competición" : cargandoClubes ? "Cargando…" : "Selecciona…"}
-            </option>
-            {clubes.map((c) => (
-              <option key={c.id} value={c.id}>{c.nombre} ({c.pais})</option>
-            ))}
-          </select>
-        </div>
+        <BuscadorClub
+          label="Club campeón"
+          clubes={clubes}
+          value={clubId}
+          onChange={setClubId}
+          disabled={!competicionId || cargandoClubes}
+          deshabilitadoTexto={!competicionId ? "Elige antes una competición" : "Cargando…"}
+        />
 
         <div>
           <label className="block text-sm font-medium mb-1">Año del título</label>

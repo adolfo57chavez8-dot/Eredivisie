@@ -12,11 +12,20 @@ export type CompeticionInfo = {
   //    Super Copa de Europa
   //  - "mundial": todos los clubes de todos los países/confederaciones
   filtroClubes: "holanda" | "europa" | "mundial";
+  // Grupo de ranking compartido. Si dos o más competiciones tienen el
+  // mismo grupoRanking, sus resultados alimentan UN SOLO ranking en
+  // conjunto (ej. las 4 competiciones europeas -> "uefa-global").
+  // Si es null, la competición tiene su propio ranking independiente
+  // (Liga/Copa/Super Copa de Holanda).
+  grupoRanking: "uefa-global" | "fifa-world" | null;
+  nombreRanking: string;
 };
 
 export const COMPETICIONES: CompeticionInfo[] = [
   {
     slug: "liga",
+    grupoRanking: null,
+    nombreRanking: "Ranking Liga (Holanda)",
     nombre: "Liga (Holanda)",
     tipo: "liga",
     emoji: "🏆",
@@ -25,6 +34,8 @@ export const COMPETICIONES: CompeticionInfo[] = [
   },
   {
     slug: "copa",
+    grupoRanking: null,
+    nombreRanking: "Ranking Copa (Holanda)",
     nombre: "Copa (Holanda)",
     tipo: "copa",
     emoji: "🏆",
@@ -33,6 +44,8 @@ export const COMPETICIONES: CompeticionInfo[] = [
   },
   {
     slug: "super-copa",
+    grupoRanking: null,
+    nombreRanking: "Ranking Super Copa (Holanda)",
     nombre: "Super Copa (Holanda)",
     tipo: "copa",
     emoji: "⭐",
@@ -41,6 +54,8 @@ export const COMPETICIONES: CompeticionInfo[] = [
   },
   {
     slug: "champions-league",
+    grupoRanking: "uefa-global",
+    nombreRanking: "Ranking UEFA Global",
     nombre: "Champions League",
     tipo: "internacional",
     emoji: "⚽",
@@ -49,6 +64,8 @@ export const COMPETICIONES: CompeticionInfo[] = [
   },
   {
     slug: "europa-league",
+    grupoRanking: "uefa-global",
+    nombreRanking: "Ranking UEFA Global",
     nombre: "UEFA Europa League",
     tipo: "internacional",
     emoji: "🟠",
@@ -57,6 +74,8 @@ export const COMPETICIONES: CompeticionInfo[] = [
   },
   {
     slug: "conference-league",
+    grupoRanking: "uefa-global",
+    nombreRanking: "Ranking UEFA Global",
     nombre: "Conference League",
     tipo: "internacional",
     emoji: "🟢",
@@ -65,6 +84,8 @@ export const COMPETICIONES: CompeticionInfo[] = [
   },
   {
     slug: "mundial-clubes",
+    grupoRanking: "fifa-world",
+    nombreRanking: "Ranking FIFA World",
     nombre: "Mundial de Clubes",
     tipo: "internacional",
     emoji: "🌍",
@@ -73,6 +94,8 @@ export const COMPETICIONES: CompeticionInfo[] = [
   },
   {
     slug: "super-copa-europa",
+    grupoRanking: "uefa-global",
+    nombreRanking: "Ranking UEFA Global",
     nombre: "Super Copa de Europa",
     tipo: "internacional",
     emoji: "🏆",

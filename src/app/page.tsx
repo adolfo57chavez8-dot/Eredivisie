@@ -33,6 +33,31 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      <section className="max-w-6xl mx-auto px-4 pb-14">
+        <h2 className="font-display text-3xl mb-2 stitch pb-2">Rankings globales</h2>
+        <p className="text-tinta/60 text-sm mb-6">
+          Estos rankings suman los puntos de varias competiciones en conjunto.
+        </p>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Link
+            href="/ranking/uefa-global"
+            className="bg-tinta text-crema rounded-lg p-5 hover:opacity-90 transition"
+          >
+            <h3 className="font-display text-2xl">Ranking UEFA Global</h3>
+            <p className="text-crema/70 text-sm mt-1">
+              Champions League + Europa League + Conference League + Super Copa de Europa
+            </p>
+          </Link>
+          <Link
+            href="/ranking/fifa-world"
+            className="bg-campo text-crema rounded-lg p-5 hover:opacity-90 transition"
+          >
+            <h3 className="font-display text-2xl">Ranking FIFA World</h3>
+            <p className="text-crema/70 text-sm mt-1">Mundial de Clubes — todas las confederaciones</p>
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

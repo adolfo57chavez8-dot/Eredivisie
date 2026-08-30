@@ -1,0 +1,24 @@
+CÓMO SUBIR LAS IMÁGENES REALES DE LOS TROFEOS
+================================================
+
+Cuando tengas las imágenes reales de cada trofeo, guárdalas en esta
+misma carpeta (public/trofeos/) con EXACTAMENTE estos nombres de
+archivo (puede ser .png, .jpg, .jpeg, .webp o .svg):
+
+  liga.png                  -> Liga (Holanda)
+  copa.png                  -> Copa (Holanda)
+  super-copa.png             -> Super Copa (Holanda)
+  champions-league.png       -> Champions League
+  europa-league.png          -> UEFA Europa League
+  conference-league.png      -> Conference League
+  super-copa-europa.png      -> Super Copa de Europa
+  mundial-clubes.png         -> Mundial de Clubes
+
+En cuanto subas un archivo con ese nombre exacto y hagas
+`git add . && git commit -m "..." && git push`, la imagen real
+aparecerá automáticamente en la cabecera de esa competición —
+no hace falta tocar ningún código.
+
+Mientras un archivo no exista, esa competición simplemente no muestra
+ninguna imagen (nada de emoji ni trofeo genérico), para no usar algo
+que no sea la imagen real.
