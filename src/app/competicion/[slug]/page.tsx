@@ -1,9 +1,8 @@
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCompeticionInfo } from "@/lib/competiciones";
-import { buscarImagenTrofeo } from "@/lib/trofeos";
+import ImagenTrofeo from "@/components/ImagenTrofeo";
 import TablaCampeones from "@/components/TablaCampeones";
 import TablaRanking from "@/components/TablaRanking";
 import HistorialFinales from "@/components/HistorialFinales";
@@ -20,7 +19,6 @@ export default async function CompeticionPage({
   if (!info) notFound();
 
   const supabase = createClient();
-  const imagenTrofeo = buscarImagenTrofeo(params.slug);
 
   // 1. Buscar la competición en la base de datos por su slug
   const { data: competicion } = await supabase
@@ -55,6 +53,7 @@ export default async function CompeticionPage({
           "fecha, fase, goles_local, goles_visitante, local:local_id(nombre, pais), visitante:visitante_id(nombre, pais)"
         )
         .eq("competicion_id", competicion.id)
+        .eq("eliminado", false)
         .order("fecha", { ascending: false })
         .limit(30),
     ];
@@ -85,21 +84,7 @@ export default async function CompeticionPage({
     <div>
       <section className="bg-campo text-crema">
         <div className="max-w-6xl mx-auto px-4 py-10 flex items-center gap-5">
-          {imagenTrofeo ? (
-            <div className="relative w-20 h-20 md:w-24 md:h-24 shrink-0">
-              <Image
-                src={imagenTrofeo}
-                alt={`Trofeo de ${info.nombre}`}
-                fill
-                sizes="96px"
-                className="object-contain"
-              />
-            </div>
-          ) : (
-            <div className="w-20 h-20 md:w-24 md:h-24 shrink-0 rounded border border-crema/20 flex items-center justify-center text-center text-[10px] text-crema/40 px-1">
-              Falta imagen del trofeo
-            </div>
-          )}
+          <ImagenTrofeo slug={params.slug} alt={`Trofeo de ${info.nombre}`} />
           <div>
             <h1 className="font-display text-4xl md:text-5xl">{info.nombre}</h1>
             <p className="text-crema/80">{info.descripcion}</p>

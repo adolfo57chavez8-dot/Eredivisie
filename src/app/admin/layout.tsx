@@ -35,6 +35,9 @@ export default async function AdminLayout({
             <Link className="px-3 py-2 rounded hover:bg-campo hover:text-crema transition" href="/admin/finales">
               Finales
             </Link>
+            <Link className="px-3 py-2 rounded hover:bg-campo hover:text-crema transition" href="/admin/historial">
+              Historial / Papelera
+            </Link>
           </nav>
         </aside>
         <div className="flex-1 min-w-0">{children}</div>
