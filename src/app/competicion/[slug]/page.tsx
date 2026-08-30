@@ -35,7 +35,10 @@ export default async function CompeticionPage({
   let partidos: any[] = [];
 
   if (competicion) {
-    const consultas: Promise<any>[] = [
+    // Nota: se usa PromiseLike (no Promise) porque los query builders de
+    // Supabase son "thenables" pero no implementan la interfaz completa
+    // de Promise (catch/finally) que exige TypeScript en modo estricto.
+    const consultas: PromiseLike<any>[] = [
       supabase
         .from("campeones")
         .select("titulos, primer_titulo, ultimo_titulo, clubes(nombre, pais)")
