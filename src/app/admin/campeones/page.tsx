@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getFiltroClubes } from "@/lib/competiciones";
 
-type Opcion = { id: string; nombre: string };
+type CompeticionOpcion = { id: string; nombre: string; slug: string };
+type ClubOpcion = { id: string; nombre: string; pais: string };
 
 export default function CampeonesAdminPage() {
   const supabase = createClient();
-  const [competiciones, setCompeticiones] = useState<Opcion[]>([]);
-  const [clubes, setClubes] = useState<Opcion[]>([]);
+  const [competiciones, setCompeticiones] = useState<CompeticionOpcion[]>([]);
+  const [clubes, setClubes] = useState<ClubOpcion[]>([]);
+  const [cargandoClubes, setCargandoClubes] = useState(false);
 
   const [competicionId, setCompeticionId] = useState("");
   const [clubId, setClubId] = useState("");
@@ -17,10 +20,38 @@ export default function CampeonesAdminPage() {
   const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
-    supabase.from("competiciones").select("id, nombre").order("nombre").then(({ data }) => setCompeticiones(data ?? []));
-    supabase.from("clubes").select("id, nombre").order("nombre").then(({ data }) => setClubes(data ?? []));
+    supabase
+      .from("competiciones")
+      .select("id, nombre, slug")
+      .order("nombre")
+      .then(({ data }) => setCompeticiones(data ?? []));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!competicionId) {
+      setClubes([]);
+      return;
+    }
+    const competicion = competiciones.find((c) => c.id === competicionId);
+    const filtro = getFiltroClubes(competicion?.slug);
+
+    setCargandoClubes(true);
+    let consulta = supabase.from("clubes").select("id, nombre, pais").order("pais").order("nombre");
+
+    if (filtro === "holanda") {
+      consulta = consulta.eq("pais", "Holanda");
+    } else if (filtro === "europa") {
+      consulta = consulta.eq("confederacion", "UEFA");
+    }
+
+    consulta.then(({ data }) => {
+      setClubes(data ?? []);
+      setCargandoClubes(false);
+      setClubId((actual) => (data?.some((c) => c.id === actual) ? actual : ""));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [competicionId, competiciones]);
 
   async function registrarTitulo(e: React.FormEvent) {
     e.preventDefault();
@@ -109,13 +140,16 @@ export default function CampeonesAdminPage() {
           <label className="block text-sm font-medium mb-1">Club campeón</label>
           <select
             required
+            disabled={!competicionId || cargandoClubes}
             value={clubId}
             onChange={(e) => setClubId(e.target.value)}
-            className="w-full border border-tinta/20 rounded px-3 py-2"
+            className="w-full border border-tinta/20 rounded px-3 py-2 disabled:bg-crema"
           >
-            <option value="">Selecciona…</option>
+            <option value="">
+              {!competicionId ? "Elige antes una competición" : cargandoClubes ? "Cargando…" : "Selecciona…"}
+            </option>
             {clubes.map((c) => (
-              <option key={c.id} value={c.id}>{c.nombre}</option>
+              <option key={c.id} value={c.id}>{c.nombre} ({c.pais})</option>
             ))}
           </select>
         </div>

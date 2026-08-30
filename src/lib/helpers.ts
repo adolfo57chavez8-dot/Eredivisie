@@ -38,30 +38,17 @@ export async function obtenerOCrearClub(
 }
 
 /**
- * Detección automática simplificada de la confederación a partir del país.
- * Se usa para el Mundial de Clubes. Ampliable con más países según se necesite.
+ * Detección automática de la confederación a partir del país.
+ * Cubre los 89 países presentes en las listas de clubes (Holanda,
+ * Europa y resto del mundo) para el Mundial de Clubes y para cuando
+ * se agrega un club nuevo a mano.
  */
 const PAISES_POR_CONFEDERACION: Record<string, string[]> = {
-  UEFA: [
-    "Holanda", "Países Bajos", "España", "Inglaterra", "Alemania", "Italia",
-    "Francia", "Portugal", "Bélgica", "Escocia", "Turquía", "Rusia", "Ucrania",
-  ],
-  CONMEBOL: [
-    "Brasil", "Argentina", "Uruguay", "Colombia", "Chile", "Paraguay",
-    "Ecuador", "Perú", "Bolivia", "Venezuela",
-  ],
-  CONCACAF: [
-    "México", "Estados Unidos", "Canadá", "Costa Rica", "Honduras",
-    "Jamaica", "Panamá",
-  ],
-  CAF: [
-    "Egipto", "Marruecos", "Túnez", "Argelia", "Nigeria", "Sudáfrica",
-    "Senegal", "Ghana",
-  ],
-  AFC: [
-    "Japón", "Corea del Sur", "Arabia Saudita", "Catar", "Irán", "Australia",
-    "China", "Emiratos Árabes Unidos",
-  ],
+  UEFA: ["Alemania", "Andorra", "Austria", "Azerbaiyán", "Bulgaria", "Bélgica", "Chipre", "Croacia", "Dinamarca", "Escocia", "Eslovaquia", "Eslovenia", "España", "Francia", "Grecia", "Holanda", "Países Bajos", "Hungría", "Inglaterra", "Israel", "Italia", "Kazajistán", "Moldavia", "Noruega", "Polonia", "Portugal", "República Checa", "Rumania", "Rusia", "Serbia", "Suecia", "Suiza", "Turquía", "Ucrania"],
+  CONMEBOL: ["Argentina", "Bolivia", "Brasil", "Chile", "Colombia", "Ecuador", "Paraguay", "Perú", "Uruguay", "Venezuela"],
+  CONCACAF: ["Canadá", "Costa Rica", "Estados Unidos", "Haití", "Jamaica", "México", "Nicaragua", "República Dominicana", "Honduras", "Panamá"],
+  CAF: ["Angola", "Botsuana", "Camerún", "Costa de Marfil", "Egipto", "Ghana", "Libia", "Mali", "Marruecos", "Nigeria", "República del Congo", "Sudáfrica", "Sudán", "Tanzania", "Túnez", "Uganda", "Zambia", "Argelia", "Senegal"],
+  AFC: ["Arabia Saudita", "Australia", "Bahréin", "Bangladesh", "China", "Corea del Sur", "Emiratos Árabes Unidos", "Hong Kong", "India", "Indonesia", "Irak", "Irán", "Japón", "Jordania", "Malasia", "Qatar", "Catar", "Singapur", "Tailandia", "Uzbekistán", "Vietnam"],
   OFC: ["Nueva Zelanda", "Fiyi", "Tahití"],
 };
 

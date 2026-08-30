@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getFiltroClubes } from "@/lib/competiciones";
 
-type Opcion = { id: string; nombre: string };
+type CompeticionOpcion = { id: string; nombre: string; slug: string };
+type ClubOpcion = { id: string; nombre: string; pais: string };
 
 export default function ResultadosAdminPage() {
   const supabase = createClient();
-  const [competiciones, setCompeticiones] = useState<Opcion[]>([]);
-  const [clubes, setClubes] = useState<Opcion[]>([]);
+  const [competiciones, setCompeticiones] = useState<CompeticionOpcion[]>([]);
+  const [clubes, setClubes] = useState<ClubOpcion[]>([]);
+  const [cargandoClubes, setCargandoClubes] = useState(false);
 
   const [competicionId, setCompeticionId] = useState("");
   const [fase, setFase] = useState<"liga" | "eliminatoria" | "final">("liga");
@@ -22,19 +25,48 @@ export default function ResultadosAdminPage() {
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
 
+  // Carga la lista de competiciones (con su slug) al entrar a la página
   useEffect(() => {
     supabase
       .from("competiciones")
-      .select("id, nombre")
+      .select("id, nombre, slug")
       .order("nombre")
       .then(({ data }) => setCompeticiones(data ?? []));
-    supabase
-      .from("clubes")
-      .select("id, nombre")
-      .order("nombre")
-      .then(({ data }) => setClubes(data ?? []));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Cada vez que cambia la competición elegida, se vuelve a cargar la
+  // lista de clubes según a qué competición pertenece:
+  //  - Liga/Copa/Super Copa de Holanda -> solo clubes de Holanda
+  //  - Champions/Europa League/Conference/Super Copa de Europa -> clubes europeos (UEFA), incluye Holanda
+  //  - Mundial de Clubes -> todos los clubes de todos los países
+  useEffect(() => {
+    if (!competicionId) {
+      setClubes([]);
+      return;
+    }
+    const competicion = competiciones.find((c) => c.id === competicionId);
+    const filtro = getFiltroClubes(competicion?.slug);
+
+    setCargandoClubes(true);
+    let consulta = supabase.from("clubes").select("id, nombre, pais").order("pais").order("nombre");
+
+    if (filtro === "holanda") {
+      consulta = consulta.eq("pais", "Holanda");
+    } else if (filtro === "europa") {
+      consulta = consulta.eq("confederacion", "UEFA");
+    }
+    // "mundial" -> sin filtro, se muestran todos los clubes
+
+    consulta.then(({ data }) => {
+      setClubes(data ?? []);
+      setCargandoClubes(false);
+      // Si el club que estaba elegido ya no está en la nueva lista, se limpia
+      setLocalId((actual) => (data?.some((c) => c.id === actual) ? actual : ""));
+      setVisitanteId((actual) => (data?.some((c) => c.id === actual) ? actual : ""));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [competicionId, competiciones]);
 
   async function guardarResultado(e: React.FormEvent) {
     e.preventDefault();
@@ -87,6 +119,9 @@ export default function ResultadosAdminPage() {
     setFoto(null);
   }
 
+  const clubLocal = clubes.find((c) => c.id === localId);
+  const clubVisitante = clubes.find((c) => c.id === visitanteId);
+
   return (
     <div>
       <h1 className="font-display text-3xl mb-1">Cargar resultado</h1>
@@ -111,6 +146,16 @@ export default function ResultadosAdminPage() {
               </option>
             ))}
           </select>
+          {competicionId && (
+            <p className="text-xs text-tinta/50 mt-1">
+              {getFiltroClubes(competiciones.find((c) => c.id === competicionId)?.slug) === "holanda" &&
+                "Mostrando solo clubes de Holanda."}
+              {getFiltroClubes(competiciones.find((c) => c.id === competicionId)?.slug) === "europa" &&
+                "Mostrando clubes europeos (incluye Holanda)."}
+              {getFiltroClubes(competiciones.find((c) => c.id === competicionId)?.slug) === "mundial" &&
+                "Mostrando clubes de todo el mundo."}
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -143,14 +188,17 @@ export default function ResultadosAdminPage() {
             <label className="block text-sm font-medium mb-1">Club local</label>
             <select
               required
+              disabled={!competicionId || cargandoClubes}
               value={localId}
               onChange={(e) => setLocalId(e.target.value)}
-              className="w-full border border-tinta/20 rounded px-3 py-2"
+              className="w-full border border-tinta/20 rounded px-3 py-2 disabled:bg-crema"
             >
-              <option value="">Selecciona…</option>
+              <option value="">
+                {!competicionId ? "Elige antes una competición" : cargandoClubes ? "Cargando…" : "Selecciona…"}
+              </option>
               {clubes.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.nombre}
+                  {c.nombre} ({c.pais})
                 </option>
               ))}
             </select>
@@ -159,14 +207,17 @@ export default function ResultadosAdminPage() {
             <label className="block text-sm font-medium mb-1">Club visitante</label>
             <select
               required
+              disabled={!competicionId || cargandoClubes}
               value={visitanteId}
               onChange={(e) => setVisitanteId(e.target.value)}
-              className="w-full border border-tinta/20 rounded px-3 py-2"
+              className="w-full border border-tinta/20 rounded px-3 py-2 disabled:bg-crema"
             >
-              <option value="">Selecciona…</option>
+              <option value="">
+                {!competicionId ? "Elige antes una competición" : cargandoClubes ? "Cargando…" : "Selecciona…"}
+              </option>
               {clubes.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.nombre}
+                  {c.nombre} ({c.pais})
                 </option>
               ))}
             </select>
@@ -196,6 +247,13 @@ export default function ResultadosAdminPage() {
           </div>
         </div>
 
+        {clubLocal && clubVisitante && (
+          <p className="text-center bg-campo text-crema rounded p-3 font-display text-lg">
+            {clubLocal.nombre} ({clubLocal.pais}) {golesLocal} - {golesVisitante} ({clubVisitante.pais}){" "}
+            {clubVisitante.nombre}
+          </p>
+        )}
+
         <div>
           <label className="block text-sm font-medium mb-1">
             Foto de evidencia (opcional)
@@ -218,9 +276,11 @@ export default function ResultadosAdminPage() {
         </button>
       </form>
 
-      {clubes.length === 0 && (
+      {competicionId && clubes.length === 0 && !cargandoClubes && (
         <p className="text-sm text-tinta/50 mt-4">
-          Aún no hay clubes registrados. Ve a “Clubes” para agregar el primero.
+          Todavía no hay clubes cargados para esta competición. Ve a
+          “Clubes” para agregar el primero (recuerda que el país determina
+          si aparece aquí).
         </p>
       )}
     </div>
