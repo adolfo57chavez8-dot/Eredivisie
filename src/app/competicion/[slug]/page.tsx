@@ -44,7 +44,7 @@ export default async function CompeticionPage({
       supabase
         .from("finales")
         .select(
-          "anio, goles_local, goles_visitante, pais_local, pais_visitante, local:club_local_id(nombre), visitante:club_visitante_id(nombre)"
+          "anio, goles_local, goles_visitante, pais_local, pais_visitante, conf_local, conf_visitante, local:club_local_id(nombre), visitante:club_visitante_id(nombre)"
         )
         .eq("competicion_id", competicion.id),
       supabase
@@ -156,6 +156,7 @@ export default async function CompeticionPage({
         <h2 className="font-display text-2xl mb-1 stitch pb-2">Historial de finales</h2>
         <p className="text-tinta/50 text-sm mb-3">Campeón y subcampeón de cada edición.</p>
         <HistorialFinales
+          localSiempreCampeon={params.slug === "mundial-clubes"}
           filas={finales.map((f: any) => ({
             anio: f.anio,
             local: f.local?.nombre ?? "—",
@@ -164,6 +165,8 @@ export default async function CompeticionPage({
             goles_visitante: f.goles_visitante,
             pais_local: f.pais_local,
             pais_visitante: f.pais_visitante,
+            conf_local: f.conf_local,
+            conf_visitante: f.conf_visitante,
           }))}
         />
       </section>
