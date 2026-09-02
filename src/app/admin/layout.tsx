@@ -16,6 +16,12 @@ export default async function AdminLayout({
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1 text-sm text-campo hover:text-campo2 font-medium mb-4"
+      >
+        ← Volver a la página principal
+      </Link>
       <div className="flex flex-col md:flex-row gap-8">
         <aside className="md:w-56 shrink-0">
           <h2 className="font-display text-2xl mb-4">Panel de administración</h2>
