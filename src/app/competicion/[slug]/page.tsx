@@ -7,6 +7,7 @@ import TablaCampeones from "@/components/TablaCampeones";
 import TablaRanking from "@/components/TablaRanking";
 import HistorialFinales from "@/components/HistorialFinales";
 import HistorialPartidos from "@/components/HistorialPartidos";
+import EnfrentamientosBuscador from "@/components/EnfrentamientosBuscador";
 
 export const dynamic = "force-dynamic";
 
@@ -187,6 +188,17 @@ export default async function CompeticionPage({
           }))}
         />
       </section>
+
+      {competicion && (
+        <section className="max-w-6xl mx-auto px-4 pb-14">
+          <h2 className="font-display text-2xl mb-1 stitch pb-2">Enfrentamientos directos</h2>
+          <p className="text-tinta/50 text-sm mb-3">
+            Elige dos clubes para ver su historial cara a cara en esta competición
+            (partidos jugados, victorias, empates y goles).
+          </p>
+          <EnfrentamientosBuscador competicionId={competicion.id} slug={params.slug} />
+        </section>
+      )}
     </div>
   );
 }

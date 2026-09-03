@@ -37,7 +37,7 @@ export default function CampeonesAdminPage() {
     const filtro = getFiltroClubes(competicion?.slug);
 
     setCargandoClubes(true);
-    let consulta = supabase.from("clubes").select("id, nombre, pais").order("pais").order("nombre");
+    let consulta = supabase.from("clubes").select("id, nombre, pais").eq("eliminado", false).order("pais").order("nombre");
 
     if (filtro === "holanda") {
       consulta = consulta.eq("pais", "Holanda");
