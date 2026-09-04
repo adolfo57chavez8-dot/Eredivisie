@@ -24,6 +24,8 @@ export type Database = {
           pais: string;
           confederacion: string | null;
           logo_url: string | null;
+          eliminado: boolean;
+          fecha_eliminacion: string | null;
           creado_en: string;
         };
         Insert: Partial<Database["public"]["Tables"]["clubes"]["Row"]> & {
@@ -70,12 +72,17 @@ export type Database = {
           id: string;
           competicion_id: string;
           fase: "liga" | "eliminatoria" | "final";
+          // Ronda específica (ej. "octavos_ida", "dieciseisavos", "final").
+          // `fase` se mantiene por compatibilidad con el cálculo del
+          // ranking; `ronda` es el detalle que se muestra en el historial.
+          ronda: string | null;
           fecha: string;
           local_id: string;
           visitante_id: string;
           goles_local: number;
           goles_visitante: number;
           imagen_evidencia: string | null;
+          eliminado: boolean;
           creado_en: string;
         };
         Insert: Partial<Database["public"]["Tables"]["partidos"]["Row"]> & {
@@ -97,6 +104,9 @@ export type Database = {
           club_id: string;
           puntos: number;
           partidos_jugados: number;
+          // Posición ocupada hace 1 año, cargada manualmente desde
+          // /admin/ranking. Se usa para el indicador ▲/▼ en la tabla.
+          posicion_anterior: number | null;
           fecha_actualizacion: string;
         };
         Insert: Partial<Database["public"]["Tables"]["rankings"]["Row"]> & {
@@ -104,6 +114,33 @@ export type Database = {
           club_id: string;
         };
         Update: Partial<Database["public"]["Tables"]["rankings"]["Row"]>;
+        Relationships: [];
+      };
+      // Ranking compartido entre varias competiciones (ej. las 4
+      // competiciones europeas -> grupo "uefa-global"). Un club tiene
+      // una sola fila por grupo, con puntos acumulados de todas las
+      // competiciones de ese grupo.
+      ranking_global: {
+        Row: {
+          id: string;
+          grupo: "uefa-global" | "fifa-world";
+          club_id: string;
+          puntos: number;
+          puntos_base: number;
+          partidos_jugados: number;
+          victorias: number;
+          empates: number;
+          derrotas: number;
+          // Posición ocupada hace 1 año, cargada manualmente desde
+          // /admin/ranking. Se usa para el indicador ▲/▼ en la tabla.
+          posicion_anterior: number | null;
+          fecha_actualizacion: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["ranking_global"]["Row"]> & {
+          grupo: "uefa-global" | "fifa-world";
+          club_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ranking_global"]["Row"]>;
         Relationships: [];
       };
       finales: {

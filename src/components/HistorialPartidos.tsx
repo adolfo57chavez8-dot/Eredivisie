@@ -1,6 +1,9 @@
+import { NOMBRES_RONDA } from "@/lib/competiciones";
+
 type Fila = {
   fecha: string;
   fase: string;
+  ronda?: string | null;
   local: string;
   paisLocal: string;
   visitante: string;
@@ -14,6 +17,11 @@ const NOMBRE_FASE: Record<string, string> = {
   eliminatoria: "Eliminatoria",
   final: "Final",
 };
+
+function etiquetaRonda(f: Fila): string {
+  if (f.ronda && NOMBRES_RONDA[f.ronda]) return NOMBRES_RONDA[f.ronda];
+  return NOMBRE_FASE[f.fase] ?? f.fase;
+}
 
 export default function HistorialPartidos({ filas }: { filas: Fila[] }) {
   if (filas.length === 0) {
@@ -30,7 +38,7 @@ export default function HistorialPartidos({ filas }: { filas: Fila[] }) {
         <thead>
           <tr className="bg-tinta text-crema text-left">
             <th className="px-3 py-2">Fecha</th>
-            <th className="px-3 py-2">Fase</th>
+            <th className="px-3 py-2">Ronda</th>
             <th className="px-3 py-2 text-right">Local</th>
             <th className="px-3 py-2 text-center">Resultado</th>
             <th className="px-3 py-2">Visitante</th>
@@ -40,9 +48,7 @@ export default function HistorialPartidos({ filas }: { filas: Fila[] }) {
           {filas.map((f, i) => (
             <tr key={i} className="odd:bg-white even:bg-crema border-b border-tinta/5">
               <td className="px-3 py-2 whitespace-nowrap text-tinta/60">{f.fecha}</td>
-              <td className="px-3 py-2 whitespace-nowrap text-tinta/60">
-                {NOMBRE_FASE[f.fase] ?? f.fase}
-              </td>
+              <td className="px-3 py-2 whitespace-nowrap text-tinta/60">{etiquetaRonda(f)}</td>
               <td className="px-3 py-2 text-right font-medium">
                 {f.local} <span className="text-tinta/40 text-xs">({f.paisLocal})</span>
               </td>

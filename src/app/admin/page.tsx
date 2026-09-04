@@ -4,6 +4,7 @@ import { COMPETICIONES } from "@/lib/competiciones";
 const ACCIONES = [
   { href: "/admin/clubes", titulo: "Agregar club", desc: "Registra un nuevo club y su país." },
   { href: "/admin/resultados", titulo: "Cargar resultado", desc: "Ingresa un resultado manualmente; el ranking se recalcula solo." },
+  { href: "/admin/ranking", titulo: "Ranking (1 año)", desc: "Carga la posición de hace 1 año para activar el indicador ▲/▼." },
   { href: "/admin/campeones", titulo: "Registrar campeón", desc: "Suma un título a un club en una competición." },
   { href: "/admin/finales", titulo: "Agregar final histórica", desc: "Carga finales pasadas al historial." },
 ];

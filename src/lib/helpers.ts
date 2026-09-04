@@ -72,3 +72,59 @@ export function calcularPuntosPartido(golesLocal: number, golesVisitante: number
   if (golesLocal < golesVisitante) return { local: 0, visitante: 3 };
   return { local: 1, visitante: 1 };
 }
+
+/**
+ * País (en español) -> código ISO 3166-1 alfa-2, para dibujar la
+ * bandera como emoji sin depender de logos ni imágenes externas.
+ * Cubre los mismos países que PAISES_POR_CONFEDERACION.
+ */
+const PAIS_A_ISO: Record<string, string> = {
+  Alemania: "DE", Andorra: "AD", Austria: "AT", Azerbaiyán: "AZ", Bulgaria: "BG",
+  Bélgica: "BE", Chipre: "CY", Croacia: "HR", Dinamarca: "DK", Eslovaquia: "SK",
+  Eslovenia: "SI", España: "ES", Francia: "FR", Grecia: "GR", Holanda: "NL",
+  "Países Bajos": "NL", Hungría: "HU", Israel: "IL", Italia: "IT", Kazajistán: "KZ",
+  Moldavia: "MD", Noruega: "NO", Polonia: "PL", Portugal: "PT", "República Checa": "CZ",
+  Rumania: "RO", Rusia: "RU", Serbia: "RS", Suecia: "SE", Suiza: "CH",
+  Turquía: "TR", Ucrania: "UA",
+  Argentina: "AR", Bolivia: "BO", Brasil: "BR", Chile: "CL", Colombia: "CO",
+  Ecuador: "EC", Paraguay: "PY", Perú: "PE", Uruguay: "UY", Venezuela: "VE",
+  Canadá: "CA", "Costa Rica": "CR", "Estados Unidos": "US", Haití: "HT", Jamaica: "JM",
+  México: "MX", Nicaragua: "NI", "República Dominicana": "DO", Honduras: "HN", Panamá: "PA",
+  Angola: "AO", Botsuana: "BW", Camerún: "CM", "Costa de Marfil": "CI", Egipto: "EG",
+  Ghana: "GH", Libia: "LY", Mali: "ML", Marruecos: "MA", Nigeria: "NG",
+  "República del Congo": "CG", Sudáfrica: "ZA", Sudán: "SD", Tanzania: "TZ", Túnez: "TN",
+  Uganda: "UG", Zambia: "ZM", Argelia: "DZ", Senegal: "SN",
+  "Arabia Saudita": "SA", Australia: "AU", Bahréin: "BH", Bangladesh: "BD", China: "CN",
+  "Corea del Sur": "KR", "Emiratos Árabes Unidos": "AE", "Hong Kong": "HK", India: "IN",
+  Indonesia: "ID", Irak: "IQ", Irán: "IR", Japón: "JP", Jordania: "JO", Malasia: "MY",
+  Qatar: "QA", Catar: "QA", Singapur: "SG", Tailandia: "TH", Uzbekistán: "UZ", Vietnam: "VN",
+  "Nueva Zelanda": "NZ", Fiyi: "FJ", Tahití: "PF",
+};
+
+// Reino Unido no tiene una única bandera para sus selecciones nacionales:
+// se usan las secuencias de emoji específicas de Inglaterra/Escocia/Gales.
+const BANDERAS_ESPECIALES: Record<string, string> = {
+  Inglaterra: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+  Escocia: "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+  Gales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
+};
+
+/**
+ * Devuelve el emoji de la bandera de un país (en español). Si no se
+ * reconoce el país, devuelve una bandera blanca genérica en vez de
+ * romper el render.
+ */
+export function banderaPais(pais: string | null | undefined): string {
+  const nombre = (pais ?? "").trim();
+  if (!nombre) return "🏳️";
+  if (BANDERAS_ESPECIALES[nombre]) return BANDERAS_ESPECIALES[nombre];
+
+  const iso = PAIS_A_ISO[nombre];
+  if (!iso) return "🏳️";
+
+  return iso
+    .toUpperCase()
+    .split("")
+    .map((letra) => String.fromCodePoint(127397 + letra.charCodeAt(0)))
+    .join("");
+}

@@ -26,7 +26,9 @@ export default async function RankingGrupoPage({ params }: { params: { grupo: st
   const supabase = createClient();
   const { data } = await supabase
     .from("ranking_global")
-    .select("puntos, puntos_base, partidos_jugados, victorias, empates, derrotas, clubes(nombre, pais, confederacion)")
+    .select(
+      "puntos, puntos_base, partidos_jugados, victorias, empates, derrotas, posicion_anterior, clubes(nombre, pais, confederacion)"
+    )
     .eq("grupo", params.grupo);
 
   const competicionesDelGrupo = COMPETICIONES.filter((c) => c.grupoRanking === params.grupo);
@@ -54,15 +56,18 @@ export default async function RankingGrupoPage({ params }: { params: { grupo: st
         </p>
         <p className="text-xs text-tinta/40 mb-4">
           El puntaje incluye una línea base histórica cargada por el administrador, más los
-          puntos de los partidos que se registren de aquí en adelante.
+          puntos de los partidos que se registren de aquí en adelante. El cambio de 1 año se
+          compara contra la posición cargada manualmente en el panel de administración.
         </p>
 
         <TablaRanking
           filas={(data ?? []).map((r: any) => ({
             club: r.clubes?.nombre ?? "—",
             pais: r.clubes?.pais ?? "—",
+            confederacion: r.clubes?.confederacion ?? null,
             puntos: (r.puntos ?? 0) + (r.puntos_base ?? 0),
             partidos_jugados: r.partidos_jugados,
+            posicion_anterior: r.posicion_anterior ?? null,
           }))}
         />
       </section>

@@ -116,3 +116,71 @@ export function getCompeticionInfo(slug: string) {
 export function getFiltroClubes(slug: string | undefined): "holanda" | "europa" | "mundial" {
   return getCompeticionInfo(slug ?? "")?.filtroClubes ?? "mundial";
 }
+
+// ---------------------------------------------------------------------
+// Rondas disponibles al cargar un resultado, según la competición.
+// Cada ronda define además a qué "fase" clásica (liga/eliminatoria/final)
+// equivale, para no romper la columna `fase` que ya existe en la base
+// de datos y de la que puede depender el trigger que recalcula el
+// ranking.
+// ---------------------------------------------------------------------
+
+export type RondaOpcion = {
+  value: string;
+  label: string;
+  fase: "liga" | "eliminatoria" | "final";
+};
+
+const RONDAS_EUROPEAS_LIGA_COPA: RondaOpcion[] = [
+  { value: "fase_liga", label: "Fase de liga", fase: "liga" },
+  { value: "octavos_ida", label: "Octavos de final — Ida", fase: "eliminatoria" },
+  { value: "octavos_vuelta", label: "Octavos de final — Vuelta", fase: "eliminatoria" },
+  { value: "cuartos_ida", label: "Cuartos de final — Ida", fase: "eliminatoria" },
+  { value: "cuartos_vuelta", label: "Cuartos de final — Vuelta", fase: "eliminatoria" },
+  { value: "semifinal_ida", label: "Semifinal — Ida", fase: "eliminatoria" },
+  { value: "semifinal_vuelta", label: "Semifinal — Vuelta", fase: "eliminatoria" },
+  { value: "final", label: "Gran final", fase: "final" },
+];
+
+const RONDAS_SOLO_FINAL: RondaOpcion[] = [
+  { value: "final", label: "Gran final", fase: "final" },
+];
+
+const RONDAS_MUNDIAL_CLUBES: RondaOpcion[] = [
+  { value: "octavos", label: "Octavos de final", fase: "eliminatoria" },
+  { value: "cuartos", label: "Cuartos de final", fase: "eliminatoria" },
+  { value: "semifinal", label: "Semifinal", fase: "eliminatoria" },
+  { value: "final", label: "Gran final", fase: "final" },
+];
+
+export const RONDAS_POR_SLUG: Record<string, RondaOpcion[]> = {
+  liga: [{ value: "jornada", label: "Jornada de liga", fase: "liga" }],
+  copa: [
+    { value: "dieciseisavos", label: "Dieciseisavos de final", fase: "eliminatoria" },
+    { value: "octavos", label: "Octavos de final", fase: "eliminatoria" },
+    { value: "cuartos", label: "Cuartos de final", fase: "eliminatoria" },
+    { value: "semifinal", label: "Semifinal", fase: "eliminatoria" },
+    { value: "final", label: "Gran final", fase: "final" },
+  ],
+  "super-copa": RONDAS_SOLO_FINAL,
+  "champions-league": RONDAS_EUROPEAS_LIGA_COPA,
+  "europa-league": RONDAS_EUROPEAS_LIGA_COPA,
+  "conference-league": RONDAS_EUROPEAS_LIGA_COPA,
+  "mundial-clubes": RONDAS_MUNDIAL_CLUBES,
+  "super-copa-europa": RONDAS_SOLO_FINAL,
+};
+
+const RONDA_GENERICA: RondaOpcion[] = [{ value: "unica", label: "Partido único", fase: "liga" }];
+
+export function getRondas(slug: string | undefined): RondaOpcion[] {
+  return RONDAS_POR_SLUG[slug ?? ""] ?? RONDA_GENERICA;
+}
+
+export function getRondaInfo(slug: string | undefined, value: string): RondaOpcion | undefined {
+  return getRondas(slug).find((r) => r.value === value);
+}
+
+/** Diccionario global ronda -> etiqueta, para mostrar historial de partidos. */
+export const NOMBRES_RONDA: Record<string, string> = Object.values(RONDAS_POR_SLUG)
+  .flat()
+  .reduce((acc, r) => ({ ...acc, [r.value]: r.label }), {} as Record<string, string>);

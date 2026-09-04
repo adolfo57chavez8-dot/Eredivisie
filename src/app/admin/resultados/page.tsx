@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getFiltroClubes } from "@/lib/competiciones";
+import { getFiltroClubes, getRondas, RondaOpcion } from "@/lib/competiciones";
 import BuscadorClub, { ClubOpcion } from "@/components/BuscadorClub";
 
 type CompeticionOpcion = { id: string; nombre: string; slug: string };
@@ -14,7 +14,7 @@ export default function ResultadosAdminPage() {
   const [cargandoClubes, setCargandoClubes] = useState(false);
 
   const [competicionId, setCompeticionId] = useState("");
-  const [fase, setFase] = useState<"liga" | "eliminatoria" | "final">("liga");
+  const [ronda, setRonda] = useState<string>("");
   const [fecha, setFecha] = useState("");
   const [localId, setLocalId] = useState("");
   const [visitanteId, setVisitanteId] = useState("");
@@ -34,15 +34,20 @@ export default function ResultadosAdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const competicionSeleccionada = competiciones.find((c) => c.id === competicionId);
+  const rondasDisponibles: RondaOpcion[] = getRondas(competicionSeleccionada?.slug);
+
   // Al cambiar de competición se vuelve a cargar la lista de clubes según
   // corresponda: Holanda / Europa (UEFA, incluye Holanda) / Mundial (todos)
+  // y se resetea la ronda a la primera opción disponible para esa competición.
   useEffect(() => {
     if (!competicionId) {
       setClubes([]);
+      setRonda("");
       return;
     }
-    const competicion = competiciones.find((c) => c.id === competicionId);
-    const filtro = getFiltroClubes(competicion?.slug);
+    const filtro = getFiltroClubes(competicionSeleccionada?.slug);
+    setRonda(getRondas(competicionSeleccionada?.slug)[0]?.value ?? "");
 
     setCargandoClubes(true);
     let consulta = supabase.from("clubes").select("id, nombre, pais").eq("eliminado", false).order("pais").order("nombre");
@@ -66,12 +71,18 @@ export default function ResultadosAdminPage() {
     e.preventDefault();
     setMensaje(null);
 
-    if (!competicionId || !localId || !visitanteId || !fecha) {
+    if (!competicionId || !localId || !visitanteId || !fecha || !ronda) {
       setMensaje("Completa todos los campos obligatorios.");
       return;
     }
     if (localId === visitanteId) {
       setMensaje("El club local y el visitante no pueden ser el mismo.");
+      return;
+    }
+
+    const rondaInfo = rondasDisponibles.find((r) => r.value === ronda);
+    if (!rondaInfo) {
+      setMensaje("Selecciona una ronda válida para esta competición.");
       return;
     }
 
@@ -89,9 +100,14 @@ export default function ResultadosAdminPage() {
       }
     }
 
+    // `fase` se sigue guardando (compatibilidad con el trigger del ranking)
+    // derivada automáticamente de la ronda elegida. `ronda` guarda el
+    // detalle específico (ej. "octavos_ida") para mostrarlo en el
+    // historial de partidos.
     const { error } = await supabase.from("partidos").insert({
       competicion_id: competicionId,
-      fase,
+      fase: rondaInfo.fase,
+      ronda: rondaInfo.value,
       fecha,
       local_id: localId,
       visitante_id: visitanteId,
@@ -115,7 +131,7 @@ export default function ResultadosAdminPage() {
 
   const clubLocal = clubes.find((c) => c.id === localId);
   const clubVisitante = clubes.find((c) => c.id === visitanteId);
-  const filtro = getFiltroClubes(competiciones.find((c) => c.id === competicionId)?.slug);
+  const filtro = getFiltroClubes(competicionSeleccionada?.slug);
 
   return (
     <div>
@@ -152,16 +168,26 @@ export default function ResultadosAdminPage() {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium mb-1">Fase</label>
+            <label className="block text-sm font-medium mb-1">Ronda</label>
             <select
-              value={fase}
-              onChange={(e) => setFase(e.target.value as any)}
-              className="w-full border border-tinta/20 rounded px-3 py-2"
+              required
+              value={ronda}
+              onChange={(e) => setRonda(e.target.value)}
+              disabled={!competicionId}
+              className="w-full border border-tinta/20 rounded px-3 py-2 disabled:opacity-50"
             >
-              <option value="liga">Fase de liga</option>
-              <option value="eliminatoria">Eliminatoria</option>
-              <option value="final">Final</option>
+              {!competicionId && <option value="">Elige antes una competición</option>}
+              {rondasDisponibles.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
             </select>
+            <p className="text-xs text-tinta/40 mt-1">
+              Las opciones cambian según la competición elegida (ida/vuelta en
+              las europeas, dieciseisavos en la Copa de Holanda, solo final en
+              las Super Copas, etc.).
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Fecha</label>

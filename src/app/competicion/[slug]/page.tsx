@@ -51,7 +51,7 @@ export default async function CompeticionPage({
       supabase
         .from("partidos")
         .select(
-          "fecha, fase, goles_local, goles_visitante, local:local_id(nombre, pais), visitante:visitante_id(nombre, pais)"
+          "fecha, fase, ronda, goles_local, goles_visitante, local:local_id(nombre, pais), visitante:visitante_id(nombre, pais)"
         )
         .eq("competicion_id", competicion.id)
         .eq("eliminado", false)
@@ -67,7 +67,7 @@ export default async function CompeticionPage({
       consultas.push(
         supabase
           .from("rankings")
-          .select("puntos, partidos_jugados, clubes(nombre, pais)")
+          .select("puntos, partidos_jugados, posicion_anterior, clubes(nombre, pais, confederacion)")
           .eq("competicion_id", competicion.id)
       );
     }
@@ -144,8 +144,10 @@ export default async function CompeticionPage({
                 filas={ranking.map((r: any) => ({
                   club: r.clubes?.nombre ?? "—",
                   pais: r.clubes?.pais ?? "—",
+                  confederacion: r.clubes?.confederacion ?? null,
                   puntos: r.puntos,
                   partidos_jugados: r.partidos_jugados,
+                  posicion_anterior: r.posicion_anterior ?? null,
                 }))}
               />
             </>
@@ -179,6 +181,7 @@ export default async function CompeticionPage({
           filas={partidos.map((p: any) => ({
             fecha: p.fecha,
             fase: p.fase,
+            ronda: p.ronda ?? null,
             local: p.local?.nombre ?? "—",
             paisLocal: p.local?.pais ?? "—",
             visitante: p.visitante?.nombre ?? "—",

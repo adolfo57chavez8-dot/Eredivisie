@@ -35,6 +35,9 @@ export default async function AdminLayout({
             <Link className="px-3 py-2 rounded hover:bg-campo hover:text-crema transition" href="/admin/resultados">
               Cargar resultado
             </Link>
+            <Link className="px-3 py-2 rounded hover:bg-campo hover:text-crema transition" href="/admin/ranking">
+              Ranking (1 año)
+            </Link>
             <Link className="px-3 py-2 rounded hover:bg-campo hover:text-crema transition" href="/admin/campeones">
               Campeones
             </Link>
