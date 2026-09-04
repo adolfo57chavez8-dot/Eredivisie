@@ -73,8 +73,6 @@ export type Database = {
           competicion_id: string;
           fase: "liga" | "eliminatoria" | "final";
           // Ronda específica (ej. "octavos_ida", "dieciseisavos", "final").
-          // `fase` se mantiene por compatibilidad con el cálculo del
-          // ranking; `ronda` es el detalle que se muestra en el historial.
           ronda: string | null;
           fecha: string;
           local_id: string;
@@ -104,9 +102,10 @@ export type Database = {
           club_id: string;
           puntos: number;
           partidos_jugados: number;
-          // Posición ocupada hace 1 año, cargada manualmente desde
-          // /admin/ranking. Se usa para el indicador ▲/▼ en la tabla.
-          posicion_anterior: number | null;
+          // Quitar/restaurar un club de este ranking puntual, sin
+          // borrarlo de la tabla "clubes" (que es compartida).
+          eliminado: boolean;
+          fecha_eliminacion: string | null;
           fecha_actualizacion: string;
         };
         Insert: Partial<Database["public"]["Tables"]["rankings"]["Row"]> & {
@@ -117,9 +116,7 @@ export type Database = {
         Relationships: [];
       };
       // Ranking compartido entre varias competiciones (ej. las 4
-      // competiciones europeas -> grupo "uefa-global"). Un club tiene
-      // una sola fila por grupo, con puntos acumulados de todas las
-      // competiciones de ese grupo.
+      // competiciones europeas -> grupo "uefa-global").
       ranking_global: {
         Row: {
           id: string;
@@ -131,9 +128,8 @@ export type Database = {
           victorias: number;
           empates: number;
           derrotas: number;
-          // Posición ocupada hace 1 año, cargada manualmente desde
-          // /admin/ranking. Se usa para el indicador ▲/▼ en la tabla.
-          posicion_anterior: number | null;
+          eliminado: boolean;
+          fecha_eliminacion: string | null;
           fecha_actualizacion: string;
         };
         Insert: Partial<Database["public"]["Tables"]["ranking_global"]["Row"]> & {
@@ -141,6 +137,27 @@ export type Database = {
           club_id: string;
         };
         Update: Partial<Database["public"]["Tables"]["ranking_global"]["Row"]>;
+        Relationships: [];
+      };
+      // Foto histórica de puntos, guardada sola por un trigger cada vez
+      // que cambian los puntos de "rankings" o "ranking_global". Sirve
+      // para calcular el cambio de 1 año sin que nadie lo cargue a mano.
+      ranking_historial: {
+        Row: {
+          id: string;
+          tipo: "competicion" | "grupo";
+          referencia: string;
+          club_id: string;
+          puntos: number;
+          fecha: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["ranking_historial"]["Row"]> & {
+          tipo: "competicion" | "grupo";
+          referencia: string;
+          club_id: string;
+          puntos: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["ranking_historial"]["Row"]>;
         Relationships: [];
       };
       finales: {

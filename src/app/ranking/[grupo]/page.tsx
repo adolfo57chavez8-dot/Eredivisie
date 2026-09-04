@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import TablaRanking from "@/components/TablaRanking";
 import { COMPETICIONES } from "@/lib/competiciones";
+import { calcularCambios1Anio } from "@/lib/ranking-historial";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +28,26 @@ export default async function RankingGrupoPage({ params }: { params: { grupo: st
   const { data } = await supabase
     .from("ranking_global")
     .select(
-      "puntos, puntos_base, partidos_jugados, victorias, empates, derrotas, posicion_anterior, clubes(nombre, pais, confederacion)"
+      "club_id, puntos, puntos_base, partidos_jugados, victorias, empates, derrotas, clubes(nombre, pais, confederacion)"
     )
-    .eq("grupo", params.grupo);
+    .eq("grupo", params.grupo)
+    .eq("eliminado", false);
+
+  const filas = (data ?? []).map((r: any) => ({
+    club_id: r.club_id as string,
+    club: r.clubes?.nombre ?? "—",
+    pais: r.clubes?.pais ?? "—",
+    confederacion: r.clubes?.confederacion ?? null,
+    puntos: (r.puntos ?? 0) + (r.puntos_base ?? 0),
+    partidos_jugados: r.partidos_jugados,
+  }));
+
+  // Cambio de 1 año calculado solo, a partir del historial de puntos
+  // (nadie tiene que cargarlo a mano).
+  const ordenParaCambio = [...filas]
+    .sort((a, b) => b.puntos - a.puntos)
+    .map((f, i) => ({ club_id: f.club_id, posicion: i + 1 }));
+  const cambios = await calcularCambios1Anio(supabase, "grupo", params.grupo, ordenParaCambio);
 
   const competicionesDelGrupo = COMPETICIONES.filter((c) => c.grupoRanking === params.grupo);
 
@@ -57,7 +75,7 @@ export default async function RankingGrupoPage({ params }: { params: { grupo: st
         <p className="text-xs text-tinta/40 mb-4">
           El puntaje incluye una línea base histórica cargada por el administrador, más los
           puntos de los partidos que se registren de aquí en adelante. El cambio de 1 año se
-          compara contra la posición cargada manualmente en el panel de administración.
+          calcula solo comparando contra el historial de puntos guardado.
         </p>
 
         {params.grupo === "uefa-global" && (
@@ -69,13 +87,13 @@ export default async function RankingGrupoPage({ params }: { params: { grupo: st
         )}
 
         <TablaRanking
-          filas={(data ?? []).map((r: any) => ({
-            club: r.clubes?.nombre ?? "—",
-            pais: r.clubes?.pais ?? "—",
-            confederacion: r.clubes?.confederacion ?? null,
-            puntos: (r.puntos ?? 0) + (r.puntos_base ?? 0),
-            partidos_jugados: r.partidos_jugados,
-            posicion_anterior: r.posicion_anterior ?? null,
+          filas={filas.map((f) => ({
+            club: f.club,
+            pais: f.pais,
+            confederacion: f.confederacion,
+            puntos: f.puntos,
+            partidos_jugados: f.partidos_jugados,
+            posicion_anterior: cambios[f.club_id]?.posicionAnterior ?? null,
           }))}
         />
       </section>

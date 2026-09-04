@@ -16,7 +16,8 @@ export default async function RankingLigasPage() {
   const { data } = await supabase
     .from("ranking_global")
     .select("puntos, puntos_base, clubes(pais)")
-    .eq("grupo", "uefa-global");
+    .eq("grupo", "uefa-global")
+    .eq("eliminado", false);
 
   const acumulado = new Map<string, FilaLiga>();
 

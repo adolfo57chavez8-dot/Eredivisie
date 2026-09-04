@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCompeticionInfo } from "@/lib/competiciones";
+import { calcularCambios1Anio } from "@/lib/ranking-historial";
 import ImagenTrofeo from "@/components/ImagenTrofeo";
 import TablaCampeones from "@/components/TablaCampeones";
 import TablaRanking from "@/components/TablaRanking";
@@ -29,14 +30,11 @@ export default async function CompeticionPage({
     .maybeSingle();
 
   let campeones: any[] = [];
-  let ranking: any[] = [];
+  let rankingCrudo: any[] = [];
   let finales: any[] = [];
   let partidos: any[] = [];
 
   if (competicion) {
-    // Nota: se usa PromiseLike (no Promise) porque los query builders de
-    // Supabase son "thenables" pero no implementan la interfaz completa
-    // de Promise (catch/finally) que exige TypeScript en modo estricto.
     const consultas: PromiseLike<any>[] = [
       supabase
         .from("campeones")
@@ -61,14 +59,13 @@ export default async function CompeticionPage({
 
     // El ranking solo se consulta aquí (por competición) cuando la
     // competición NO pertenece a un grupo de ranking compartido.
-    // Si pertenece (ej. las 4 europeas -> "uefa-global"), su ranking se
-    // ve en /ranking/[grupo], no aquí.
     if (!info.grupoRanking) {
       consultas.push(
         supabase
           .from("rankings")
-          .select("puntos, partidos_jugados, posicion_anterior, clubes(nombre, pais, confederacion)")
+          .select("club_id, puntos, partidos_jugados, clubes(nombre, pais, confederacion)")
           .eq("competicion_id", competicion.id)
+          .eq("eliminado", false)
       );
     }
 
@@ -77,8 +74,26 @@ export default async function CompeticionPage({
     finales = resultados[1].data ?? [];
     partidos = resultados[2].data ?? [];
     if (!info.grupoRanking) {
-      ranking = resultados[3]?.data ?? [];
+      rankingCrudo = resultados[3]?.data ?? [];
     }
+  }
+
+  const filasRanking = rankingCrudo.map((r: any) => ({
+    club_id: r.club_id as string,
+    club: r.clubes?.nombre ?? "—",
+    pais: r.clubes?.pais ?? "—",
+    confederacion: r.clubes?.confederacion ?? null,
+    puntos: r.puntos ?? 0,
+    partidos_jugados: r.partidos_jugados,
+  }));
+
+  // Cambio de 1 año calculado solo (nadie lo carga a mano).
+  let cambios: Record<string, { posicionAnterior: number | null }> = {};
+  if (!info.grupoRanking && competicion) {
+    const ordenParaCambio = [...filasRanking]
+      .sort((a, b) => b.puntos - a.puntos)
+      .map((f, i) => ({ club_id: f.club_id, posicion: i + 1 }));
+    cambios = await calcularCambios1Anio(supabase, "competicion", competicion.id, ordenParaCambio);
   }
 
   return (
@@ -138,16 +153,16 @@ export default async function CompeticionPage({
               <h2 className="font-display text-2xl mb-1 stitch pb-2">{info.nombreRanking}</h2>
               <p className="text-tinta/50 text-sm mb-3">
                 Calculado por el sitio a partir de los resultados cargados
-                (no es un ranking oficial).
+                (no es un ranking oficial). El cambio de 1 año se calcula solo.
               </p>
               <TablaRanking
-                filas={ranking.map((r: any) => ({
-                  club: r.clubes?.nombre ?? "—",
-                  pais: r.clubes?.pais ?? "—",
-                  confederacion: r.clubes?.confederacion ?? null,
-                  puntos: r.puntos,
-                  partidos_jugados: r.partidos_jugados,
-                  posicion_anterior: r.posicion_anterior ?? null,
+                filas={filasRanking.map((f) => ({
+                  club: f.club,
+                  pais: f.pais,
+                  confederacion: f.confederacion,
+                  puntos: f.puntos,
+                  partidos_jugados: f.partidos_jugados,
+                  posicion_anterior: cambios[f.club_id]?.posicionAnterior ?? null,
                 }))}
               />
             </>
