@@ -60,6 +60,14 @@ export default async function RankingGrupoPage({ params }: { params: { grupo: st
           compara contra la posición cargada manualmente en el panel de administración.
         </p>
 
+        {params.grupo === "uefa-global" && (
+          <p className="text-sm mb-4">
+            <Link href="/ranking/ligas" className="underline hover:text-campo">
+              Ver ranking de ligas (suma de puntos por país) →
+            </Link>
+          </p>
+        )}
+
         <TablaRanking
           filas={(data ?? []).map((r: any) => ({
             club: r.clubes?.nombre ?? "—",

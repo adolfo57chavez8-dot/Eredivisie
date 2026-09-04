@@ -39,7 +39,7 @@ export default function HomePage() {
         <p className="text-tinta/60 text-sm mb-6">
           Estos rankings suman los puntos de varias competiciones en conjunto.
         </p>
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid sm:grid-cols-3 gap-4">
           <Link
             href="/ranking/uefa-global"
             className="bg-tinta text-crema rounded-lg p-5 hover:opacity-90 transition"
@@ -55,6 +55,15 @@ export default function HomePage() {
           >
             <h3 className="font-display text-2xl">Ranking FIFA World</h3>
             <p className="text-crema/70 text-sm mt-1">Mundial de Clubes — todas las confederaciones</p>
+          </Link>
+          <Link
+            href="/ranking/ligas"
+            className="bg-acento text-tinta rounded-lg p-5 hover:opacity-90 transition"
+          >
+            <h3 className="font-display text-2xl">Ranking de Ligas</h3>
+            <p className="text-tinta/70 text-sm mt-1">
+              Suma de puntos por país dentro del Ranking UEFA Global
+            </p>
           </Link>
         </div>
       </section>
