@@ -19,6 +19,12 @@ export type CompeticionInfo = {
   // (Liga/Copa/Super Copa de Holanda).
   grupoRanking: "uefa-global" | "fifa-world" | null;
   nombreRanking: string;
+  // Clases de Tailwind para la tarjeta de la portada (ver src/app/page.tsx).
+  // Son colores inspirados en la identidad de cada competición, no los
+  // logos oficiales (esos los tiene que subir el administrador a
+  // /public/logos-competiciones/<slug>.png — ver ImagenLogo.tsx).
+  colorFondo: string;
+  colorTexto: string;
 };
 
 export const COMPETICIONES: CompeticionInfo[] = [
@@ -31,6 +37,8 @@ export const COMPETICIONES: CompeticionInfo[] = [
     emoji: "🏆",
     descripcion: "Primera División de Holanda (Eredivisie)",
     filtroClubes: "holanda",
+    colorFondo: "bg-blue-800",
+    colorTexto: "text-white",
   },
   {
     slug: "copa",
@@ -41,6 +49,8 @@ export const COMPETICIONES: CompeticionInfo[] = [
     emoji: "🏆",
     descripcion: "Copa nacional de Holanda",
     filtroClubes: "holanda",
+    colorFondo: "bg-orange-700",
+    colorTexto: "text-white",
   },
   {
     slug: "super-copa",
@@ -51,6 +61,8 @@ export const COMPETICIONES: CompeticionInfo[] = [
     emoji: "⭐",
     descripcion: "Super Copa de Holanda",
     filtroClubes: "holanda",
+    colorFondo: "bg-slate-900",
+    colorTexto: "text-amber-400",
   },
   {
     slug: "champions-league",
@@ -61,6 +73,8 @@ export const COMPETICIONES: CompeticionInfo[] = [
     emoji: "⚽",
     descripcion: "Fase de liga y eliminatoria, ranking UEFA/FIFA",
     filtroClubes: "europa",
+    colorFondo: "bg-blue-950",
+    colorTexto: "text-white",
   },
   {
     slug: "europa-league",
@@ -71,6 +85,8 @@ export const COMPETICIONES: CompeticionInfo[] = [
     emoji: "🟠",
     descripcion: "Fase de liga y eliminatoria, ranking UEFA/FIFA",
     filtroClubes: "europa",
+    colorFondo: "bg-neutral-900",
+    colorTexto: "text-white",
   },
   {
     slug: "conference-league",
@@ -81,6 +97,8 @@ export const COMPETICIONES: CompeticionInfo[] = [
     emoji: "🟢",
     descripcion: "Fase de liga y eliminatoria, ranking UEFA/FIFA",
     filtroClubes: "europa",
+    colorFondo: "bg-neutral-900",
+    colorTexto: "text-white",
   },
   {
     slug: "mundial-clubes",
@@ -91,6 +109,8 @@ export const COMPETICIONES: CompeticionInfo[] = [
     emoji: "🌍",
     descripcion: "Ranking mundial FIFA, detección automática de confederación",
     filtroClubes: "mundial",
+    colorFondo: "bg-neutral-900",
+    colorTexto: "text-amber-400",
   },
   {
     slug: "super-copa-europa",
@@ -101,6 +121,8 @@ export const COMPETICIONES: CompeticionInfo[] = [
     emoji: "🏆",
     descripcion: "Super Copa de Europa",
     filtroClubes: "europa",
+    colorFondo: "bg-blue-950",
+    colorTexto: "text-white",
   },
 ];
 

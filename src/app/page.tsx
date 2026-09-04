@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { COMPETICIONES } from "@/lib/competiciones";
+import ImagenLogo from "@/components/ImagenLogo";
 
 export default function HomePage() {
   return (
@@ -24,11 +25,17 @@ export default function HomePage() {
             <Link
               key={c.slug}
               href={`/competicion/${c.slug}`}
-              className="bg-white border border-tinta/10 rounded-lg p-5 flex flex-col items-center text-center gap-2 hover:border-acento hover:shadow-md transition"
+              className={`rounded-lg p-5 flex flex-col items-center text-center gap-2 hover:shadow-md hover:opacity-90 transition ${c.colorFondo} ${c.colorTexto}`}
             >
-              <span className="text-3xl">{c.emoji}</span>
+              <ImagenLogo
+                carpeta="logos-competiciones"
+                slug={c.slug}
+                alt={c.nombre}
+                className="h-14 w-14 object-contain"
+                respaldo={<span className="text-3xl">{c.emoji}</span>}
+              />
               <span className="font-semibold leading-tight">{c.nombre}</span>
-              <span className="text-xs text-tinta/60">{c.descripcion}</span>
+              <span className="text-xs opacity-70">{c.descripcion}</span>
             </Link>
           ))}
         </div>
@@ -39,31 +46,70 @@ export default function HomePage() {
         <p className="text-tinta/60 text-sm mb-6">
           Estos rankings suman los puntos de varias competiciones en conjunto.
         </p>
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="flex flex-col gap-4">
           <Link
             href="/ranking/uefa-global"
-            className="bg-tinta text-crema rounded-lg p-5 hover:opacity-90 transition"
+            className="bg-tinta text-crema rounded-lg p-5 hover:opacity-90 transition flex items-center gap-4"
           >
-            <h3 className="font-display text-2xl">Ranking UEFA Global</h3>
-            <p className="text-crema/70 text-sm mt-1">
-              Champions League + Europa League + Conference League + Super Copa de Europa
-            </p>
+            <ImagenLogo
+              carpeta="logos-rankings"
+              slug="uefa"
+              alt="UEFA"
+              className="h-14 w-14 object-contain shrink-0 bg-white rounded-full p-1.5"
+              respaldo={
+                <span className="h-14 w-14 shrink-0 rounded-full bg-white text-tinta font-display flex items-center justify-center text-xs">
+                  UEFA
+                </span>
+              }
+            />
+            <div>
+              <h3 className="font-display text-2xl">Ranking UEFA Global</h3>
+              <p className="text-crema/70 text-sm mt-1">
+                Champions League + Europa League + Conference League + Super Copa de Europa
+              </p>
+            </div>
           </Link>
           <Link
             href="/ranking/fifa-world"
-            className="bg-campo text-crema rounded-lg p-5 hover:opacity-90 transition"
+            className="bg-campo text-crema rounded-lg p-5 hover:opacity-90 transition flex items-center gap-4"
           >
-            <h3 className="font-display text-2xl">Ranking FIFA World</h3>
-            <p className="text-crema/70 text-sm mt-1">Mundial de Clubes — todas las confederaciones</p>
+            <ImagenLogo
+              carpeta="logos-rankings"
+              slug="fifa"
+              alt="FIFA"
+              className="h-14 w-14 object-contain shrink-0 bg-white rounded-full p-1.5"
+              respaldo={
+                <span className="h-14 w-14 shrink-0 rounded-full bg-white text-campo font-display flex items-center justify-center text-xs">
+                  FIFA
+                </span>
+              }
+            />
+            <div>
+              <h3 className="font-display text-2xl">Ranking FIFA World</h3>
+              <p className="text-crema/70 text-sm mt-1">Mundial de Clubes — todas las confederaciones</p>
+            </div>
           </Link>
           <Link
             href="/ranking/ligas"
-            className="bg-acento text-tinta rounded-lg p-5 hover:opacity-90 transition"
+            className="bg-acento text-tinta rounded-lg p-5 hover:opacity-90 transition flex items-center gap-4"
           >
-            <h3 className="font-display text-2xl">Ranking de Ligas</h3>
-            <p className="text-tinta/70 text-sm mt-1">
-              Suma de puntos por país dentro del Ranking UEFA Global
-            </p>
+            <ImagenLogo
+              carpeta="logos-rankings"
+              slug="uefa"
+              alt="UEFA"
+              className="h-14 w-14 object-contain shrink-0 bg-white rounded-full p-1.5"
+              respaldo={
+                <span className="h-14 w-14 shrink-0 rounded-full bg-white text-acento font-display flex items-center justify-center text-xs">
+                  UEFA
+                </span>
+              }
+            />
+            <div>
+              <h3 className="font-display text-2xl">Ranking de Ligas</h3>
+              <p className="text-tinta/70 text-sm mt-1">
+                Suma de puntos por país dentro del Ranking UEFA Global
+              </p>
+            </div>
           </Link>
         </div>
       </section>
