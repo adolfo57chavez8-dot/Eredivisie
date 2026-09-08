@@ -7,6 +7,16 @@ import BuscadorClub, { ClubOpcion } from "@/components/BuscadorClub";
 
 type CompeticionOpcion = { id: string; nombre: string; slug: string };
 
+type FilaFinal = {
+  id: string;
+  anio: number;
+  goles_local: number;
+  goles_visitante: number;
+  eliminado: boolean;
+  local: { nombre: string } | null;
+  visitante: { nombre: string } | null;
+};
+
 export default function FinalesAdminPage() {
   const supabase = createClient();
   const [competiciones, setCompeticiones] = useState<CompeticionOpcion[]>([]);
@@ -22,6 +32,23 @@ export default function FinalesAdminPage() {
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
 
+  const [finales, setFinales] = useState<FilaFinal[]>([]);
+  const [cargandoFinales, setCargandoFinales] = useState(false);
+  const [procesandoId, setProcesandoId] = useState<string | null>(null);
+
+  async function cargarFinales(id: string) {
+    setCargandoFinales(true);
+    const { data } = await supabase
+      .from("finales")
+      .select(
+        "id, anio, goles_local, goles_visitante, eliminado, local:club_local_id(nombre), visitante:club_visitante_id(nombre)"
+      )
+      .eq("competicion_id", id)
+      .order("anio", { ascending: false });
+    setFinales((data as any) ?? []);
+    setCargandoFinales(false);
+  }
+
   useEffect(() => {
     supabase
       .from("competiciones")
@@ -30,6 +57,50 @@ export default function FinalesAdminPage() {
       .then(({ data }) => setCompeticiones(data ?? []));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!competicionId) {
+      setFinales([]);
+      return;
+    }
+    cargarFinales(competicionId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [competicionId]);
+
+  async function eliminarFinal(id: string) {
+    if (
+      !confirm(
+        "¿Eliminar esta final del historial? Podrás restaurarla después. No modifica el conteo de títulos en «Campeones»."
+      )
+    ) {
+      return;
+    }
+    setProcesandoId(id);
+    const { error } = await supabase
+      .from("finales")
+      .update({ eliminado: true, fecha_eliminacion: new Date().toISOString() })
+      .eq("id", id);
+    setProcesandoId(null);
+    if (error) {
+      setMensaje(`Error: ${error.message}`);
+      return;
+    }
+    cargarFinales(competicionId);
+  }
+
+  async function restaurarFinal(id: string) {
+    setProcesandoId(id);
+    const { error } = await supabase
+      .from("finales")
+      .update({ eliminado: false, fecha_eliminacion: null })
+      .eq("id", id);
+    setProcesandoId(null);
+    if (error) {
+      setMensaje(`Error: ${error.message}`);
+      return;
+    }
+    cargarFinales(competicionId);
+  }
 
   useEffect(() => {
     if (!competicionId) {
@@ -67,6 +138,7 @@ export default function FinalesAdminPage() {
       .select("id, titulos, primer_titulo")
       .eq("competicion_id", competicionId)
       .eq("club_id", clubGanadorId)
+      .eq("eliminado", false)
       .maybeSingle();
 
     const existente = existenteData as { id: string; titulos: number; primer_titulo: number | null } | null;
@@ -139,6 +211,7 @@ export default function FinalesAdminPage() {
 
     setCargando(false);
     setMensaje("Final agregada al historial." + mensajeCampeon);
+    if (competicionId) cargarFinales(competicionId);
   }
 
   const clubLocal = clubes.find((c) => c.id === localId);
@@ -239,6 +312,82 @@ export default function FinalesAdminPage() {
           {cargando ? "Guardando…" : "Guardar final"}
         </button>
       </form>
+
+      <h2 className="font-display text-2xl mt-10 mb-1">Finales registradas</h2>
+      <p className="text-tinta/60 mb-4">
+        Elimina una final cargada por error, o restáurala si te
+        arrepentiste. No modifica el conteo de títulos en «Campeones».
+      </p>
+
+      {!competicionId && (
+        <p className="text-sm text-tinta/50">Elige una competición arriba para ver sus finales.</p>
+      )}
+
+      {competicionId && cargandoFinales && <p className="text-sm text-tinta/50">Cargando…</p>}
+
+      {competicionId && !cargandoFinales && finales.length === 0 && (
+        <p className="text-sm text-tinta/50">Todavía no hay finales cargadas en esta competición.</p>
+      )}
+
+      {competicionId && !cargandoFinales && finales.length > 0 && (
+        <div className="overflow-x-auto border border-tinta/10 rounded-lg">
+          <table className="w-full text-sm border-collapse min-w-[560px]">
+            <thead>
+              <tr className="bg-tinta text-crema text-left">
+                <th className="px-3 py-2">Año</th>
+                <th className="px-3 py-2 text-right">Local</th>
+                <th className="px-3 py-2 text-center">Resultado</th>
+                <th className="px-3 py-2">Visitante</th>
+                <th className="px-3 py-2 text-center">Estado</th>
+                <th className="px-3 py-2 text-center">Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {finales.map((f) => (
+                <tr
+                  key={f.id}
+                  className={`border-b border-tinta/5 ${
+                    f.eliminado ? "bg-red-50 text-tinta/40" : "odd:bg-white even:bg-crema"
+                  }`}
+                >
+                  <td className="px-3 py-2 whitespace-nowrap">{f.anio}</td>
+                  <td className="px-3 py-2 text-right">{f.local?.nombre ?? "—"}</td>
+                  <td className="px-3 py-2 text-center font-display text-base">
+                    {f.goles_local} - {f.goles_visitante}
+                  </td>
+                  <td className="px-3 py-2">{f.visitante?.nombre ?? "—"}</td>
+                  <td className="px-3 py-2 text-center">
+                    {f.eliminado ? (
+                      <span className="text-red-600 font-medium">Eliminado</span>
+                    ) : (
+                      <span className="text-green-700 font-medium">Activo</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    {f.eliminado ? (
+                      <button
+                        onClick={() => restaurarFinal(f.id)}
+                        disabled={procesandoId === f.id}
+                        className="bg-campo text-crema text-xs font-semibold px-3 py-1.5 rounded hover:bg-campo2 transition disabled:opacity-60"
+                      >
+                        {procesandoId === f.id ? "…" : "Restaurar"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => eliminarFinal(f.id)}
+                        disabled={procesandoId === f.id}
+                        className="bg-red-600 text-white text-xs font-semibold px-3 py-1.5 rounded hover:bg-red-700 transition disabled:opacity-60"
+                      >
+                        {procesandoId === f.id ? "…" : "Eliminar"}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

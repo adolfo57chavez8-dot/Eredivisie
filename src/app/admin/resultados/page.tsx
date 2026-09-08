@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 import { getFiltroClubes, getRondas, RondaOpcion } from "@/lib/competiciones";
 import BuscadorClub, { ClubOpcion } from "@/components/BuscadorClub";
 
@@ -138,7 +139,12 @@ export default function ResultadosAdminPage() {
       <h1 className="font-display text-3xl mb-1">Cargar resultado</h1>
       <p className="text-tinta/60 mb-6">
         Manualmente o subiendo una foto de evidencia. El ranking se recalcula
-        automáticamente al guardar.
+        automáticamente al guardar. ¿Cargaste un resultado por error? Puedes
+        eliminarlo o restaurarlo desde{" "}
+        <Link href="/admin/historial" className="text-campo font-medium underline hover:text-campo2">
+          Historial / Papelera
+        </Link>
+        .
       </p>
 
       <form onSubmit={guardarResultado} className="bg-white border border-tinta/10 rounded-lg p-5 space-y-4 max-w-xl">

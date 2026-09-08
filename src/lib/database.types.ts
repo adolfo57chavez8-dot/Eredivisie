@@ -59,6 +59,8 @@ export type Database = {
           titulos: number;
           primer_titulo: number | null;
           ultimo_titulo: number | null;
+          eliminado: boolean;
+          fecha_eliminacion: string | null;
         };
         Insert: Partial<Database["public"]["Tables"]["campeones"]["Row"]> & {
           club_id: string;
@@ -173,6 +175,8 @@ export type Database = {
           pais_visitante: string | null;
           conf_local: string | null;
           conf_visitante: string | null;
+          eliminado: boolean;
+          fecha_eliminacion: string | null;
         };
         Insert: Partial<Database["public"]["Tables"]["finales"]["Row"]> & {
           competicion_id: string;

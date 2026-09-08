@@ -39,13 +39,15 @@ export default async function CompeticionPage({
       supabase
         .from("campeones")
         .select("titulos, primer_titulo, ultimo_titulo, clubes(nombre, pais)")
-        .eq("competicion_id", competicion.id),
+        .eq("competicion_id", competicion.id)
+        .eq("eliminado", false),
       supabase
         .from("finales")
         .select(
           "anio, goles_local, goles_visitante, pais_local, pais_visitante, conf_local, conf_visitante, local:club_local_id(nombre), visitante:club_visitante_id(nombre)"
         )
-        .eq("competicion_id", competicion.id),
+        .eq("competicion_id", competicion.id)
+        .eq("eliminado", false),
       supabase
         .from("partidos")
         .select(
