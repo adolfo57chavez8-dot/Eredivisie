@@ -155,6 +155,7 @@ export type RondaOpcion = {
 
 const RONDAS_EUROPEAS_LIGA_COPA: RondaOpcion[] = [
   { value: "fase_liga", label: "Fase de liga", fase: "liga" },
+  { value: "playoff", label: "Play off (partido único)", fase: "eliminatoria" },
   { value: "octavos_ida", label: "Octavos de final — Ida", fase: "eliminatoria" },
   { value: "octavos_vuelta", label: "Octavos de final — Vuelta", fase: "eliminatoria" },
   { value: "cuartos_ida", label: "Cuartos de final — Ida", fase: "eliminatoria" },
