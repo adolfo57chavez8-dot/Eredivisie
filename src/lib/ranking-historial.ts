@@ -6,16 +6,17 @@ export type CambioRanking = {
 };
 
 /**
- * Calcula automáticamente la posición que ocupaba cada club hace ~1 año
- * dentro de un ranking (una competición individual o un grupo como
+ * Calcula automáticamente la posición que ocupaba cada club "1 año"
+ * (según la fecha de los partidos, no la fecha real) atrás dentro de
+ * un ranking (una competición individual o un grupo como
  * "uefa-global"/"fifa-world"), usando las fotos guardadas en
  * `ranking_historial` (se guardan solas mediante un trigger cada vez
  * que cambian los puntos — ver migración SQL).
  *
  * No requiere que nadie cargue nada a mano: si todavía no existe una
- * foto de hace 1 año para un club (por ejemplo, porque el club es
- * nuevo o el sitio lleva poco tiempo corriendo), simplemente se
- * muestra como "Nuevo" hasta que pase el tiempo suficiente.
+ * foto de hace 1 año (de calendario de partidos) para un club, se
+ * muestra como "Nuevo" hasta que el admin cargue resultados con
+ * fechas separadas por al menos un año.
  */
 export async function calcularCambios1Anio(
   supabase: SupabaseClient,
@@ -28,7 +29,24 @@ export async function calcularCambios1Anio(
 
   if (posicionesActuales.length === 0) return mapaVacio;
 
-  const haceUnAnio = new Date();
+  // "Hoy" ya NO es la fecha real del calendario: es la fecha más
+  // reciente que exista en el historial de ESTA competición/grupo (la
+  // última fecha de partido que se haya cargado). Así el cambio de
+  // "1 año" sigue el calendario de temporadas que carga el admin
+  // (2026, 2027, 2028…) en vez del reloj real del servidor.
+  const { data: filaMasReciente } = await supabase
+    .from("ranking_historial")
+    .select("fecha")
+    .eq("tipo", tipo)
+    .eq("referencia", referencia)
+    .order("fecha", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!filaMasReciente) return mapaVacio;
+
+  const hoy = new Date(filaMasReciente.fecha);
+  const haceUnAnio = new Date(hoy);
   haceUnAnio.setFullYear(haceUnAnio.getFullYear() - 1);
 
   const { data, error } = await supabase
