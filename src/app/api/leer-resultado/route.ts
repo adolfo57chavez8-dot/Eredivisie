@@ -2,16 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Esta ruta corre en el servidor (nunca en el navegador), así que la
 // API key de Gemini nunca queda expuesta al público. Recibe una foto
-// de un resultado + la lista de clubes válidos para esa competición,
-// y le pide a Gemini que identifique equipos y marcador.
+// (que puede tener UN resultado o VARIOS juntos, como una jornada
+// completa) + la lista de clubes válidos para esa competición, y le
+// pide a Gemini que identifique todos los partidos que encuentre.
 
 export const runtime = "nodejs";
 
 type ClubParaIA = { id: string; nombre: string };
 
-type RespuestaIA = {
+type FilaIA = {
   local_id: string | null;
   visitante_id: string | null;
+  local_texto?: string | null;
+  visitante_texto?: string | null;
   goles_local: number | null;
   goles_visitante: number | null;
   confianza: "alta" | "media" | "baja" | null;
@@ -22,6 +25,7 @@ type RespuestaIA = {
 // variables de entorno con el nombre nuevo.
 const MODELO = process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
 const TAMANO_MAXIMO_MB = 8;
+const MAXIMO_RESULTADOS = 40;
 
 export async function POST(request: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -68,8 +72,7 @@ export async function POST(request: NextRequest) {
           .map((c) => ({ id: c.id, nombre: c.nombre }));
       }
     } catch {
-      // Sin lista de clubes válida: seguimos, pero Gemini no va a poder
-      // devolver ningún id (más abajo se descarta todo lo que no matchee).
+      // Sin lista de clubes válida: se maneja abajo (se corta con error).
     }
   }
 
@@ -86,16 +89,16 @@ export async function POST(request: NextRequest) {
 
   const listaClubes = clubes.map((c) => `- ${c.id}: ${c.nombre}`).join("\n");
 
-  const prompt = `Estás leyendo una captura de un resultado de fútbol (puede ser de un videojuego tipo FIFA/PES o un marcador real).
-Identifica el equipo local, el equipo visitante y el marcador final.
+  const prompt = `Estás leyendo una captura de resultados de fútbol (puede ser de un videojuego tipo FIFA/PES o un marcador real). La imagen puede tener UN SOLO resultado o VARIOS resultados juntos (una jornada completa, una tabla con muchos partidos, etc.). Identifica TODOS los resultados que aparezcan en la imagen, uno por uno, sin saltarte ninguno.
 
-Elige "local_id" y "visitante_id" ÚNICAMENTE de esta lista de clubes válidos (copia el id EXACTO tal cual aparece, nunca inventes uno nuevo ni uses el nombre):
+Para cada resultado que encuentres, identifica el equipo local, el equipo visitante y el marcador final.
+
+Para "local_id" y "visitante_id": elige ÚNICAMENTE de esta lista de clubes válidos (copia el id EXACTO tal cual aparece, nunca inventes uno nuevo ni uses el nombre en vez del id):
 ${listaClubes}
 
-Si el equipo que ves en la imagen no coincide con confianza razonable con ninguno de la lista de arriba, deja ese campo en null en vez de adivinar.
+Si el equipo que ves no coincide con confianza razonable con ninguno de la lista de arriba, deja ese id en null (no inventes), pero de todas formas escribe en "local_texto"/"visitante_texto" el nombre o texto que sí lograste leer en la imagen, para que un humano lo pueda revisar y completar a mano.
 
-Responde SOLO con un JSON, sin texto adicional, con este formato exacto:
-{"local_id": string|null, "visitante_id": string|null, "goles_local": number|null, "goles_visitante": number|null, "confianza": "alta"|"media"|"baja"}`;
+Devuelve el JSON con el array "resultados", uno por cada partido que encuentres en la imagen, en el mismo orden en que aparecen de arriba hacia abajo.`;
 
   const cuerpo = {
     contents: [
@@ -105,6 +108,28 @@ Responde SOLO con un JSON, sin texto adicional, con este formato exacto:
     ],
     generationConfig: {
       response_mime_type: "application/json",
+      response_schema: {
+        type: "OBJECT",
+        properties: {
+          resultados: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                local_id: { type: "STRING", nullable: true },
+                visitante_id: { type: "STRING", nullable: true },
+                local_texto: { type: "STRING", nullable: true },
+                visitante_texto: { type: "STRING", nullable: true },
+                goles_local: { type: "INTEGER", nullable: true },
+                goles_visitante: { type: "INTEGER", nullable: true },
+                confianza: { type: "STRING", enum: ["alta", "media", "baja"], nullable: true },
+              },
+              required: ["goles_local", "goles_visitante"],
+            },
+          },
+        },
+        required: ["resultados"],
+      },
     },
   };
 
@@ -131,7 +156,7 @@ Responde SOLO con un JSON, sin texto adicional, con este formato exacto:
       return NextResponse.json(
         {
           error:
-            "Se alcanzó el límite gratuito de Gemini por ahora. Espera un poco o carga el resultado a mano.",
+            "Se alcanzó el límite gratuito de Gemini por ahora. Espera un poco o carga los resultados a mano.",
         },
         { status: 429 }
       );
@@ -149,30 +174,41 @@ Responde SOLO con un JSON, sin texto adicional, con este formato exacto:
     return NextResponse.json({ error: "Gemini no devolvió una respuesta legible." }, { status: 502 });
   }
 
-  let resultado: RespuestaIA;
+  let resultado: { resultados?: FilaIA[] };
   try {
     resultado = JSON.parse(texto);
   } catch {
     return NextResponse.json({ error: "Gemini devolvió un formato inesperado." }, { status: 502 });
   }
 
+  const lista = Array.isArray(resultado.resultados) ? resultado.resultados : [];
+
+  if (lista.length === 0) {
+    return NextResponse.json(
+      { error: "No se identificó ningún resultado en la imagen." },
+      { status: 422 }
+    );
+  }
+
   // Verificación defensiva: solo aceptamos IDs que de verdad estén en la
   // lista de clubes que mandamos. Así nunca se puede guardar un club
   // inventado, aunque Gemini se equivoque o alucine un id.
   const idsValidos = new Set(clubes.map((c) => c.id));
-  const localId =
-    resultado.local_id && idsValidos.has(resultado.local_id) ? resultado.local_id : null;
-  const visitanteId =
-    resultado.visitante_id && idsValidos.has(resultado.visitante_id)
-      ? resultado.visitante_id
-      : null;
 
-  return NextResponse.json({
-    local_id: localId,
-    visitante_id: visitanteId,
-    goles_local: typeof resultado.goles_local === "number" ? resultado.goles_local : null,
-    goles_visitante:
-      typeof resultado.goles_visitante === "number" ? resultado.goles_visitante : null,
-    confianza: resultado.confianza ?? null,
+  const resultados = lista.slice(0, MAXIMO_RESULTADOS).map((fila) => {
+    const localId = fila.local_id && idsValidos.has(fila.local_id) ? fila.local_id : null;
+    const visitanteId =
+      fila.visitante_id && idsValidos.has(fila.visitante_id) ? fila.visitante_id : null;
+    return {
+      local_id: localId,
+      visitante_id: visitanteId,
+      local_texto: fila.local_texto ?? null,
+      visitante_texto: fila.visitante_texto ?? null,
+      goles_local: typeof fila.goles_local === "number" ? fila.goles_local : null,
+      goles_visitante: typeof fila.goles_visitante === "number" ? fila.goles_visitante : null,
+      confianza: fila.confianza ?? null,
+    };
   });
+
+  return NextResponse.json({ resultados });
 }

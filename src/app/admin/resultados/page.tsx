@@ -8,6 +8,17 @@ import BuscadorClub, { ClubOpcion } from "@/components/BuscadorClub";
 
 type CompeticionOpcion = { id: string; nombre: string; slug: string };
 
+type FilaLote = {
+  clave: string;
+  localId: string;
+  visitanteId: string;
+  golesLocal: number;
+  golesVisitante: number;
+  incluir: boolean;
+  localTexto: string | null;
+  visitanteTexto: string | null;
+};
+
 export default function ResultadosAdminPage() {
   const supabase = createClient();
   const [competiciones, setCompeticiones] = useState<CompeticionOpcion[]>([]);
@@ -28,6 +39,10 @@ export default function ResultadosAdminPage() {
 
   const [leyendoIA, setLeyendoIA] = useState(false);
   const [mensajeIA, setMensajeIA] = useState<string | null>(null);
+
+  const [lote, setLote] = useState<FilaLote[] | null>(null);
+  const [guardandoLote, setGuardandoLote] = useState(false);
+  const [resumenLote, setResumenLote] = useState<string | null>(null);
 
   useEffect(() => {
     supabase
@@ -145,6 +160,8 @@ export default function ResultadosAdminPage() {
 
     setLeyendoIA(true);
     setMensajeIA(null);
+    setLote(null);
+    setResumenLote(null);
 
     const formData = new FormData();
     formData.append("imagen", foto);
@@ -159,29 +176,140 @@ export default function ResultadosAdminPage() {
         return;
       }
 
-      let identificados = 0;
-      if (datos.local_id) {
-        setLocalId(datos.local_id);
-        identificados++;
-      }
-      if (datos.visitante_id) {
-        setVisitanteId(datos.visitante_id);
-        identificados++;
-      }
-      if (typeof datos.goles_local === "number") setGolesLocal(datos.goles_local);
-      if (typeof datos.goles_visitante === "number") setGolesVisitante(datos.goles_visitante);
+      const resultados: Array<{
+        local_id: string | null;
+        visitante_id: string | null;
+        local_texto: string | null;
+        visitante_texto: string | null;
+        goles_local: number | null;
+        goles_visitante: number | null;
+      }> = datos.resultados ?? [];
 
-      if (identificados === 2) {
-        setMensajeIA("Listo — revisa que esté todo bien antes de guardar.");
-      } else if (identificados === 1) {
-        setMensajeIA("Solo se identificó un equipo con confianza. Completa el otro a mano.");
-      } else {
-        setMensajeIA("No se pudo identificar ningún equipo con confianza. Complétalo a mano.");
+      if (resultados.length === 0) {
+        setMensajeIA("No se pudo identificar ningún resultado. Complétalo a mano.");
+        return;
       }
+
+      if (resultados.length === 1) {
+        // Un solo resultado en la imagen: se precarga el formulario normal, como antes.
+        const r = resultados[0];
+        let identificados = 0;
+        if (r.local_id) {
+          setLocalId(r.local_id);
+          identificados++;
+        }
+        if (r.visitante_id) {
+          setVisitanteId(r.visitante_id);
+          identificados++;
+        }
+        if (typeof r.goles_local === "number") setGolesLocal(r.goles_local);
+        if (typeof r.goles_visitante === "number") setGolesVisitante(r.goles_visitante);
+
+        if (identificados === 2) {
+          setMensajeIA("Listo — revisa que esté todo bien antes de guardar.");
+        } else if (identificados === 1) {
+          setMensajeIA("Solo se identificó un equipo con confianza. Completa el otro a mano.");
+        } else {
+          setMensajeIA("No se pudo identificar ningún equipo con confianza. Complétalo a mano.");
+        }
+        return;
+      }
+
+      // Varios resultados en la misma imagen: se arma una lista para
+      // revisar y guardarlos todos juntos (comparten Competición/Ronda/Fecha).
+      const filas: FilaLote[] = resultados.map((r, i) => ({
+        clave: `${Date.now()}-${i}`,
+        localId: r.local_id ?? "",
+        visitanteId: r.visitante_id ?? "",
+        golesLocal: typeof r.goles_local === "number" ? r.goles_local : 0,
+        golesVisitante: typeof r.goles_visitante === "number" ? r.goles_visitante : 0,
+        incluir: Boolean(r.local_id && r.visitante_id),
+        localTexto: r.local_texto ?? null,
+        visitanteTexto: r.visitante_texto ?? null,
+      }));
+
+      setLote(filas);
+      const completos = filas.filter((f) => f.incluir).length;
+      setMensajeIA(
+        `Se identificaron ${filas.length} resultados (${completos} listos, revisa el resto abajo antes de guardar).`
+      );
     } catch {
       setMensajeIA("Error de conexión al leer la imagen. Intenta de nuevo.");
     } finally {
       setLeyendoIA(false);
+    }
+  }
+
+  function actualizarFilaLote(clave: string, cambios: Partial<FilaLote>) {
+    setLote((actual) => actual?.map((f) => (f.clave === clave ? { ...f, ...cambios } : f)) ?? null);
+  }
+
+  function quitarFilaLote(clave: string) {
+    setLote((actual) => actual?.filter((f) => f.clave !== clave) ?? null);
+  }
+
+  async function guardarLote() {
+    if (!lote) return;
+
+    if (!competicionId || !fecha || !ronda) {
+      setResumenLote("Completa Competición, Ronda y Fecha arriba (aplican a todos los resultados de la lista).");
+      return;
+    }
+    const rondaInfo = rondasDisponibles.find((r) => r.value === ronda);
+    if (!rondaInfo) {
+      setResumenLote("Selecciona una ronda válida para esta competición.");
+      return;
+    }
+
+    const filasAGuardar = lote.filter((f) => f.incluir);
+    if (filasAGuardar.length === 0) {
+      setResumenLote("No hay ningún resultado marcado para guardar.");
+      return;
+    }
+    for (const f of filasAGuardar) {
+      if (!f.localId || !f.visitanteId) {
+        setResumenLote("Hay filas marcadas sin los dos equipos elegidos. Complétalas o desmárcalas.");
+        return;
+      }
+      if (f.localId === f.visitanteId) {
+        setResumenLote("Hay una fila con el mismo equipo como local y visitante.");
+        return;
+      }
+    }
+
+    setGuardandoLote(true);
+    setResumenLote(null);
+
+    let guardados = 0;
+    const clavesFallidas: string[] = [];
+
+    for (const f of filasAGuardar) {
+      const { error } = await supabase.from("partidos").insert({
+        competicion_id: competicionId,
+        fase: rondaInfo.fase,
+        ronda: rondaInfo.value,
+        fecha,
+        local_id: f.localId,
+        visitante_id: f.visitanteId,
+        goles_local: f.golesLocal,
+        goles_visitante: f.golesVisitante,
+        imagen_evidencia: null,
+      });
+      if (error) clavesFallidas.push(f.clave);
+      else guardados++;
+    }
+
+    setGuardandoLote(false);
+
+    if (clavesFallidas.length === 0) {
+      setResumenLote(`Se guardaron los ${guardados} resultados. El ranking se actualizó automáticamente.`);
+      setLote(null);
+      setFoto(null);
+    } else {
+      setResumenLote(
+        `Se guardaron ${guardados} de ${filasAGuardar.length}. ${clavesFallidas.length} fallaron — quedan marcados abajo, revisa e intenta de nuevo.`
+      );
+      setLote((actual) => actual?.filter((f) => clavesFallidas.includes(f.clave) || !f.incluir) ?? null);
     }
   }
 
@@ -262,55 +390,59 @@ export default function ResultadosAdminPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <BuscadorClub
-            label="Equipo local"
-            clubes={clubes}
-            value={localId}
-            onChange={setLocalId}
-            excluirId={visitanteId || undefined}
-            disabled={!competicionId || cargandoClubes}
-            deshabilitadoTexto={!competicionId ? "Elige antes una competición" : "Cargando…"}
-          />
-          <BuscadorClub
-            label="Equipo visitante"
-            clubes={clubes}
-            value={visitanteId}
-            onChange={setVisitanteId}
-            excluirId={localId || undefined}
-            disabled={!competicionId || cargandoClubes}
-            deshabilitadoTexto={!competicionId ? "Elige antes una competición" : "Cargando…"}
-          />
-        </div>
+        {!lote && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <BuscadorClub
+                label="Equipo local"
+                clubes={clubes}
+                value={localId}
+                onChange={setLocalId}
+                excluirId={visitanteId || undefined}
+                disabled={!competicionId || cargandoClubes}
+                deshabilitadoTexto={!competicionId ? "Elige antes una competición" : "Cargando…"}
+              />
+              <BuscadorClub
+                label="Equipo visitante"
+                clubes={clubes}
+                value={visitanteId}
+                onChange={setVisitanteId}
+                excluirId={localId || undefined}
+                disabled={!competicionId || cargandoClubes}
+                deshabilitadoTexto={!competicionId ? "Elige antes una competición" : "Cargando…"}
+              />
+            </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium mb-1">Goles local</label>
-            <input
-              type="number"
-              min={0}
-              value={golesLocal}
-              onChange={(e) => setGolesLocal(Number(e.target.value))}
-              className="w-full border border-tinta/20 rounded px-3 py-2"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Goles visitante</label>
-            <input
-              type="number"
-              min={0}
-              value={golesVisitante}
-              onChange={(e) => setGolesVisitante(Number(e.target.value))}
-              className="w-full border border-tinta/20 rounded px-3 py-2"
-            />
-          </div>
-        </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">Goles local</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={golesLocal}
+                  onChange={(e) => setGolesLocal(Number(e.target.value))}
+                  className="w-full border border-tinta/20 rounded px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Goles visitante</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={golesVisitante}
+                  onChange={(e) => setGolesVisitante(Number(e.target.value))}
+                  className="w-full border border-tinta/20 rounded px-3 py-2"
+                />
+              </div>
+            </div>
 
-        {clubLocal && clubVisitante && (
-          <p className="text-center bg-campo text-crema rounded p-3 font-display text-lg break-words">
-            {clubLocal.nombre} ({clubLocal.pais}) {golesLocal} - {golesVisitante} ({clubVisitante.pais}){" "}
-            {clubVisitante.nombre}
-          </p>
+            {clubLocal && clubVisitante && (
+              <p className="text-center bg-campo text-crema rounded p-3 font-display text-lg break-words">
+                {clubLocal.nombre} ({clubLocal.pais}) {golesLocal} - {golesVisitante} ({clubVisitante.pais}){" "}
+                {clubVisitante.nombre}
+              </p>
+            )}
+          </>
         )}
 
         <div>
@@ -335,22 +467,134 @@ export default function ResultadosAdminPage() {
             {leyendoIA ? "Leyendo imagen…" : "🪄 Leer con IA y autocompletar"}
           </button>
           <p className="text-xs text-tinta/40 mt-1">
-            Usa Gemini para leer la foto y precargar equipos y marcador.
-            Revisa siempre los datos antes de guardar.
+            Usa Gemini para leer la foto. Si detecta un solo resultado,
+            precarga el formulario de abajo. Si detecta varios (una
+            jornada completa), arma una lista para revisar y guardarlos
+            todos juntos. Revisa siempre los datos antes de guardar.
           </p>
           {mensajeIA && (
             <p className="text-xs mt-1 bg-crema border border-tinta/10 rounded p-2">{mensajeIA}</p>
           )}
         </div>
 
+        {lote && (
+          <div className="border border-campo/40 rounded-lg p-3 space-y-3 bg-campo/5">
+            <p className="text-sm font-medium">
+              {lote.length} resultados detectados — revisa cada uno antes de guardar.
+            </p>
+            <div className="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
+              {lote.map((f, i) => (
+                <div key={f.clave} className="bg-white border border-tinta/10 rounded p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 text-sm font-medium">
+                      <input
+                        type="checkbox"
+                        checked={f.incluir}
+                        onChange={(e) => actualizarFilaLote(f.clave, { incluir: e.target.checked })}
+                      />
+                      Resultado #{i + 1}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => quitarFilaLote(f.clave)}
+                      className="text-xs text-red-600 underline"
+                    >
+                      Quitar de la lista
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <BuscadorClub
+                        label="Local"
+                        clubes={clubes}
+                        value={f.localId}
+                        onChange={(id) => actualizarFilaLote(f.clave, { localId: id })}
+                        excluirId={f.visitanteId || undefined}
+                      />
+                      {!f.localId && f.localTexto && (
+                        <p className="text-xs text-tinta/40 mt-1">IA leyó: “{f.localTexto}” (sin coincidencia)</p>
+                      )}
+                    </div>
+                    <div>
+                      <BuscadorClub
+                        label="Visitante"
+                        clubes={clubes}
+                        value={f.visitanteId}
+                        onChange={(id) => actualizarFilaLote(f.clave, { visitanteId: id })}
+                        excluirId={f.localId || undefined}
+                      />
+                      {!f.visitanteId && f.visitanteTexto && (
+                        <p className="text-xs text-tinta/40 mt-1">IA leyó: “{f.visitanteTexto}” (sin coincidencia)</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Goles local</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={f.golesLocal}
+                        onChange={(e) => actualizarFilaLote(f.clave, { golesLocal: Number(e.target.value) })}
+                        className="w-full border border-tinta/20 rounded px-2 py-1.5 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Goles visitante</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={f.golesVisitante}
+                        onChange={(e) => actualizarFilaLote(f.clave, { golesVisitante: Number(e.target.value) })}
+                        className="w-full border border-tinta/20 rounded px-2 py-1.5 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {resumenLote && (
+              <p className="text-sm bg-white border border-tinta/10 rounded p-2">{resumenLote}</p>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={guardarLote}
+                disabled={guardandoLote}
+                className="flex-1 bg-campo text-crema font-semibold py-2.5 rounded hover:bg-campo2 transition disabled:opacity-60"
+              >
+                {guardandoLote
+                  ? "Guardando…"
+                  : `Guardar ${lote.filter((f) => f.incluir).length} resultados`}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setLote(null);
+                  setResumenLote(null);
+                }}
+                className="border border-tinta/20 rounded px-4 text-sm hover:bg-crema"
+              >
+                Cancelar lista
+              </button>
+            </div>
+          </div>
+        )}
+
         {mensaje && <p className="text-sm bg-crema border border-tinta/10 rounded p-2">{mensaje}</p>}
 
-        <button
-          disabled={cargando}
-          className="w-full bg-campo text-crema font-semibold py-2.5 rounded hover:bg-campo2 transition disabled:opacity-60"
-        >
-          {cargando ? "Guardando…" : "Guardar resultado"}
-        </button>
+        {!lote && (
+          <button
+            disabled={cargando}
+            className="w-full bg-campo text-crema font-semibold py-2.5 rounded hover:bg-campo2 transition disabled:opacity-60"
+          >
+            {cargando ? "Guardando…" : "Guardar resultado"}
+          </button>
+        )}
       </form>
 
       {competicionId && clubes.length === 0 && !cargandoClubes && (
