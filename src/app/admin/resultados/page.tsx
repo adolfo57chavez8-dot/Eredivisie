@@ -26,6 +26,9 @@ export default function ResultadosAdminPage() {
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
 
+  const [leyendoIA, setLeyendoIA] = useState(false);
+  const [mensajeIA, setMensajeIA] = useState<string | null>(null);
+
   useEffect(() => {
     supabase
       .from("competiciones")
@@ -128,6 +131,58 @@ export default function ResultadosAdminPage() {
     setGolesLocal(0);
     setGolesVisitante(0);
     setFoto(null);
+  }
+
+  async function leerConIA() {
+    if (!foto) {
+      setMensajeIA("Primero elige una foto de evidencia abajo.");
+      return;
+    }
+    if (!competicionId) {
+      setMensajeIA("Elige primero la competición, así se puede emparejar con sus clubes.");
+      return;
+    }
+
+    setLeyendoIA(true);
+    setMensajeIA(null);
+
+    const formData = new FormData();
+    formData.append("imagen", foto);
+    formData.append("clubes", JSON.stringify(clubes.map((c) => ({ id: c.id, nombre: c.nombre }))));
+
+    try {
+      const respuesta = await fetch("/api/leer-resultado", { method: "POST", body: formData });
+      const datos = await respuesta.json();
+
+      if (!respuesta.ok) {
+        setMensajeIA(datos.error ?? "No se pudo leer la imagen.");
+        return;
+      }
+
+      let identificados = 0;
+      if (datos.local_id) {
+        setLocalId(datos.local_id);
+        identificados++;
+      }
+      if (datos.visitante_id) {
+        setVisitanteId(datos.visitante_id);
+        identificados++;
+      }
+      if (typeof datos.goles_local === "number") setGolesLocal(datos.goles_local);
+      if (typeof datos.goles_visitante === "number") setGolesVisitante(datos.goles_visitante);
+
+      if (identificados === 2) {
+        setMensajeIA("Listo — revisa que esté todo bien antes de guardar.");
+      } else if (identificados === 1) {
+        setMensajeIA("Solo se identificó un equipo con confianza. Completa el otro a mano.");
+      } else {
+        setMensajeIA("No se pudo identificar ningún equipo con confianza. Complétalo a mano.");
+      }
+    } catch {
+      setMensajeIA("Error de conexión al leer la imagen. Intenta de nuevo.");
+    } finally {
+      setLeyendoIA(false);
+    }
   }
 
   const clubLocal = clubes.find((c) => c.id === localId);
@@ -265,9 +320,27 @@ export default function ResultadosAdminPage() {
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => setFoto(e.target.files?.[0] ?? null)}
+            onChange={(e) => {
+              setFoto(e.target.files?.[0] ?? null);
+              setMensajeIA(null);
+            }}
             className="w-full text-sm"
           />
+          <button
+            type="button"
+            onClick={leerConIA}
+            disabled={!foto || leyendoIA}
+            className="mt-2 w-full border-2 border-campo text-campo font-semibold py-2 rounded hover:bg-campo hover:text-crema transition disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-campo"
+          >
+            {leyendoIA ? "Leyendo imagen…" : "🪄 Leer con IA y autocompletar"}
+          </button>
+          <p className="text-xs text-tinta/40 mt-1">
+            Usa Gemini para leer la foto y precargar equipos y marcador.
+            Revisa siempre los datos antes de guardar.
+          </p>
+          {mensajeIA && (
+            <p className="text-xs mt-1 bg-crema border border-tinta/10 rounded p-2">{mensajeIA}</p>
+          )}
         </div>
 
         {mensaje && <p className="text-sm bg-crema border border-tinta/10 rounded p-2">{mensaje}</p>}
