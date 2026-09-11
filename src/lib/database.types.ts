@@ -84,6 +84,7 @@ export type Database = {
           imagen_evidencia: string | null;
           eliminado: boolean;
           creado_en: string;
+          cargado_por_ia: boolean;
         };
         Insert: Partial<Database["public"]["Tables"]["partidos"]["Row"]> & {
           competicion_id: string;

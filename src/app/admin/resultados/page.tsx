@@ -44,6 +44,12 @@ export default function ResultadosAdminPage() {
   const [guardandoLote, setGuardandoLote] = useState(false);
   const [resumenLote, setResumenLote] = useState<string | null>(null);
 
+  // Marca si el resultado individual en el formulario vino de "Leer con
+  // IA" (para poder verlo aparte en "Cargados con IA"). Se apaga si
+  // eliges una foto nueva, para no arrastrar la marca de una lectura
+  // anterior a un resultado distinto.
+  const [usoIA, setUsoIA] = useState(false);
+
   useEffect(() => {
     supabase
       .from("competiciones")
@@ -133,6 +139,7 @@ export default function ResultadosAdminPage() {
       goles_local: golesLocal,
       goles_visitante: golesVisitante,
       imagen_evidencia: imagenUrl,
+      cargado_por_ia: usoIA,
     });
 
     setCargando(false);
@@ -146,6 +153,7 @@ export default function ResultadosAdminPage() {
     setGolesLocal(0);
     setGolesVisitante(0);
     setFoto(null);
+    setUsoIA(false);
   }
 
   async function leerConIA() {
@@ -212,6 +220,7 @@ export default function ResultadosAdminPage() {
         } else {
           setMensajeIA("No se pudo identificar ningún equipo con confianza. Complétalo a mano.");
         }
+        setUsoIA(identificados > 0);
         return;
       }
 
@@ -294,6 +303,7 @@ export default function ResultadosAdminPage() {
         goles_local: f.golesLocal,
         goles_visitante: f.golesVisitante,
         imagen_evidencia: null,
+        cargado_por_ia: true,
       });
       if (error) clavesFallidas.push(f.clave);
       else guardados++;
@@ -455,6 +465,7 @@ export default function ResultadosAdminPage() {
             onChange={(e) => {
               setFoto(e.target.files?.[0] ?? null);
               setMensajeIA(null);
+              setUsoIA(false);
             }}
             className="w-full text-sm"
           />
