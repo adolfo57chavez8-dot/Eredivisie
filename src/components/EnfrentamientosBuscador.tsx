@@ -34,6 +34,7 @@ export default function EnfrentamientosBuscador({
     const filtro = getFiltroClubes(slug);
     let consulta = supabase.from("clubes").select("id, nombre, pais").eq("eliminado", false).order("pais").order("nombre");
     if (filtro === "holanda") consulta = consulta.eq("pais", "Holanda");
+    else if (filtro === "espana") consulta = consulta.eq("pais", "España");
     else if (filtro === "europa") consulta = consulta.eq("confederacion", "UEFA");
 
     consulta.then(({ data }) => {

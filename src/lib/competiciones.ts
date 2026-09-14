@@ -6,12 +6,14 @@ export type CompeticionInfo = {
   descripcion: string;
   // Qué clubes se pueden elegir al cargar resultados/finales/campeones
   // de esta competición:
-  //  - "holanda": solo clubes de Holanda (Liga, Copa, Super Copa)
-  //  - "europa": clubes cuya confederación es UEFA (incluye Holanda +
-  //    el resto de Europa) — Champions, Europa League, Conference,
-  //    Super Copa de Europa
+  //  - "holanda": solo clubes de Holanda (ya no hay competiciones que
+  //    usen este filtro, pero se deja por si se reactiva alguna)
+  //  - "espana": solo clubes de España (Liga, Copa del Rey, Super Copa)
+  //  - "europa": clubes cuya confederación es UEFA (incluye España,
+  //    Holanda y el resto de Europa) — Champions, Europa League,
+  //    Conference, Super Copa de Europa
   //  - "mundial": todos los clubes de todos los países/confederaciones
-  filtroClubes: "holanda" | "europa" | "mundial";
+  filtroClubes: "holanda" | "espana" | "europa" | "mundial";
   // Grupo de ranking compartido. Si dos o más competiciones tienen el
   // mismo grupoRanking, sus resultados alimentan UN SOLO ranking en
   // conjunto (ej. las 4 competiciones europeas -> "uefa-global").
@@ -29,38 +31,38 @@ export type CompeticionInfo = {
 
 export const COMPETICIONES: CompeticionInfo[] = [
   {
-    slug: "liga",
+    slug: "liga-espanola",
     grupoRanking: null,
-    nombreRanking: "Ranking Liga (Holanda)",
-    nombre: "Liga (Holanda)",
+    nombreRanking: "Ranking Liga Española",
+    nombre: "Liga Española",
     tipo: "liga",
     emoji: "🏆",
-    descripcion: "Primera División de Holanda (Eredivisie)",
-    filtroClubes: "holanda",
-    colorFondo: "bg-blue-800",
+    descripcion: "Primera División de España (LaLiga)",
+    filtroClubes: "espana",
+    colorFondo: "bg-red-800",
     colorTexto: "text-white",
   },
   {
-    slug: "copa",
+    slug: "copa-del-rey",
     grupoRanking: null,
-    nombreRanking: "Ranking Copa (Holanda)",
-    nombre: "Copa (Holanda)",
+    nombreRanking: "Ranking Copa del Rey",
+    nombre: "Copa del Rey",
     tipo: "copa",
     emoji: "🏆",
-    descripcion: "Copa nacional de Holanda",
-    filtroClubes: "holanda",
-    colorFondo: "bg-orange-700",
+    descripcion: "Copa nacional de España",
+    filtroClubes: "espana",
+    colorFondo: "bg-orange-800",
     colorTexto: "text-white",
   },
   {
-    slug: "super-copa",
+    slug: "super-copa-espana",
     grupoRanking: null,
-    nombreRanking: "Ranking Super Copa (Holanda)",
-    nombre: "Super Copa (Holanda)",
+    nombreRanking: "Ranking Super Copa de España",
+    nombre: "Super Copa de España",
     tipo: "copa",
     emoji: "⭐",
-    descripcion: "Super Copa de Holanda",
-    filtroClubes: "holanda",
+    descripcion: "Super Copa de España",
+    filtroClubes: "espana",
     colorFondo: "bg-slate-900",
     colorTexto: "text-amber-400",
   },
@@ -135,7 +137,7 @@ export function getCompeticionInfo(slug: string) {
  * slug de la competición. Si el slug no se reconoce, por seguridad
  * devuelve "mundial" (sin restringir) en vez de dejar la lista vacía.
  */
-export function getFiltroClubes(slug: string | undefined): "holanda" | "europa" | "mundial" {
+export function getFiltroClubes(slug: string | undefined): "holanda" | "espana" | "europa" | "mundial" {
   return getCompeticionInfo(slug ?? "")?.filtroClubes ?? "mundial";
 }
 
@@ -177,15 +179,15 @@ const RONDAS_MUNDIAL_CLUBES: RondaOpcion[] = [
 ];
 
 export const RONDAS_POR_SLUG: Record<string, RondaOpcion[]> = {
-  liga: [{ value: "jornada", label: "Jornada de liga", fase: "liga" }],
-  copa: [
+  "liga-espanola": [{ value: "jornada", label: "Jornada de liga", fase: "liga" }],
+  "copa-del-rey": [
     { value: "dieciseisavos", label: "Dieciseisavos de final", fase: "eliminatoria" },
     { value: "octavos", label: "Octavos de final", fase: "eliminatoria" },
     { value: "cuartos", label: "Cuartos de final", fase: "eliminatoria" },
     { value: "semifinal", label: "Semifinal", fase: "eliminatoria" },
     { value: "final", label: "Gran final", fase: "final" },
   ],
-  "super-copa": RONDAS_SOLO_FINAL,
+  "super-copa-espana": RONDAS_SOLO_FINAL,
   "champions-league": RONDAS_EUROPEAS_LIGA_COPA,
   "europa-league": RONDAS_EUROPEAS_LIGA_COPA,
   "conference-league": RONDAS_EUROPEAS_LIGA_COPA,

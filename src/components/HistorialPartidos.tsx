@@ -1,4 +1,5 @@
 import { NOMBRES_RONDA } from "@/lib/competiciones";
+import Marcador from "./Marcador";
 
 type Fila = {
   fecha: string;
@@ -10,6 +11,8 @@ type Fila = {
   paisVisitante: string;
   golesLocal: number;
   golesVisitante: number;
+  penalesLocal?: number | null;
+  penalesVisitante?: number | null;
 };
 
 const NOMBRE_FASE: Record<string, string> = {
@@ -53,7 +56,12 @@ export default function HistorialPartidos({ filas }: { filas: Fila[] }) {
                 {f.local} <span className="text-tinta/40 text-xs">({f.paisLocal})</span>
               </td>
               <td className="px-3 py-2 text-center font-display text-base bg-campo/5 rounded">
-                {f.golesLocal} - {f.golesVisitante}
+                <Marcador
+                  golesLocal={f.golesLocal}
+                  golesVisitante={f.golesVisitante}
+                  penalesLocal={f.penalesLocal}
+                  penalesVisitante={f.penalesVisitante}
+                />
               </td>
               <td className="px-3 py-2 font-medium">
                 {f.visitante} <span className="text-tinta/40 text-xs">({f.paisVisitante})</span>

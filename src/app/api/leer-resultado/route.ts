@@ -17,6 +17,9 @@ type FilaIA = {
   visitante_texto?: string | null;
   goles_local: number | null;
   goles_visitante: number | null;
+  penales_local?: number | null;
+  penales_visitante?: number | null;
+  anio?: number | null;
   confianza: "alta" | "media" | "baja" | null;
 };
 
@@ -89,16 +92,20 @@ export async function POST(request: NextRequest) {
 
   const listaClubes = clubes.map((c) => `- ${c.id}: ${c.nombre}`).join("\n");
 
-  const prompt = `Estás leyendo una captura de resultados de fútbol (puede ser de un videojuego tipo FIFA/PES o un marcador real). La imagen puede tener UN SOLO resultado o VARIOS resultados juntos (una jornada completa, una tabla con muchos partidos, etc.). Identifica TODOS los resultados que aparezcan en la imagen, uno por uno, sin saltarte ninguno.
+  const prompt = `Estás leyendo una captura de resultados de fútbol (puede ser de un videojuego tipo FIFA/PES, un marcador real, o una TABLA con el historial de varias finales/temporadas). La imagen puede tener UN SOLO resultado o VARIOS juntos (una jornada completa, una tabla con muchos partidos o finales, etc.). Identifica TODOS los resultados que aparezcan en la imagen, uno por uno, sin saltarte ninguno.
 
-Para cada resultado que encuentres, identifica el equipo local, el equipo visitante y el marcador final.
+Para cada resultado que encuentres, identifica el equipo local, el equipo visitante, el marcador final, y si la imagen muestra una temporada o año (por ejemplo una columna "Temporada" con "25/26", o un año como "2026"), el año correspondiente.
+
+Si el partido se definió por penales tras un empate (a veces se ve como "(5-4 pen)", "pen.", o dos números chiquitos arriba del marcador), incluye "penales_local" y "penales_visitante" con esos números. Si NO hubo penales, deja esos dos campos en null — no los confundas con el marcador normal.
 
 Para "local_id" y "visitante_id": elige ÚNICAMENTE de esta lista de clubes válidos (copia el id EXACTO tal cual aparece, nunca inventes uno nuevo ni uses el nombre en vez del id):
 ${listaClubes}
 
 Si el equipo que ves no coincide con confianza razonable con ninguno de la lista de arriba, deja ese id en null (no inventes), pero de todas formas escribe en "local_texto"/"visitante_texto" el nombre o texto que sí lograste leer en la imagen, para que un humano lo pueda revisar y completar a mano.
 
-Devuelve el JSON con el array "resultados", uno por cada partido que encuentres en la imagen, en el mismo orden en que aparecen de arriba hacia abajo.`;
+Para "anio": si ves una temporada tipo "25/26", usa el año en que termina esa temporada (25/26 → 2026). Si ves un año simple, úsalo tal cual. Si no hay ninguna información de año o temporada visible, deja "anio" en null.
+
+Devuelve el JSON con el array "resultados", uno por cada partido o final que encuentres en la imagen, en el mismo orden en que aparecen de arriba hacia abajo.`;
 
   const cuerpo = {
     contents: [
@@ -122,6 +129,9 @@ Devuelve el JSON con el array "resultados", uno por cada partido que encuentres 
                 visitante_texto: { type: "STRING", nullable: true },
                 goles_local: { type: "INTEGER", nullable: true },
                 goles_visitante: { type: "INTEGER", nullable: true },
+                penales_local: { type: "INTEGER", nullable: true },
+                penales_visitante: { type: "INTEGER", nullable: true },
+                anio: { type: "INTEGER", nullable: true },
                 confianza: { type: "STRING", enum: ["alta", "media", "baja"], nullable: true },
               },
               required: ["goles_local", "goles_visitante"],
@@ -206,6 +216,9 @@ Devuelve el JSON con el array "resultados", uno por cada partido que encuentres 
       visitante_texto: fila.visitante_texto ?? null,
       goles_local: typeof fila.goles_local === "number" ? fila.goles_local : null,
       goles_visitante: typeof fila.goles_visitante === "number" ? fila.goles_visitante : null,
+      penales_local: typeof fila.penales_local === "number" ? fila.penales_local : null,
+      penales_visitante: typeof fila.penales_visitante === "number" ? fila.penales_visitante : null,
+      anio: typeof fila.anio === "number" ? fila.anio : null,
       confianza: fila.confianza ?? null,
     };
   });

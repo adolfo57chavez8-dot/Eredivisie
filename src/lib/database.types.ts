@@ -81,6 +81,9 @@ export type Database = {
           visitante_id: string;
           goles_local: number;
           goles_visitante: number;
+          // Penales (solo si el partido se definió así; null = no hubo).
+          penales_local: number | null;
+          penales_visitante: number | null;
           imagen_evidencia: string | null;
           eliminado: boolean;
           creado_en: string;
@@ -172,6 +175,9 @@ export type Database = {
           club_visitante_id: string;
           goles_local: number;
           goles_visitante: number;
+          // Penales (solo si la final se definió así; null = no hubo).
+          penales_local: number | null;
+          penales_visitante: number | null;
           pais_local: string | null;
           pais_visitante: string | null;
           conf_local: string | null;

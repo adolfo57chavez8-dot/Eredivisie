@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Marcador from "@/components/Marcador";
 
 type CompeticionOpcion = { id: string; nombre: string; slug: string };
 
@@ -11,6 +12,8 @@ type FilaPartido = {
   fase: string;
   goles_local: number;
   goles_visitante: number;
+  penales_local: number | null;
+  penales_visitante: number | null;
   eliminado: boolean;
   local: { nombre: string; pais: string } | null;
   visitante: { nombre: string; pais: string } | null;
@@ -45,7 +48,7 @@ export default function HistorialAdminPage() {
     const { data } = await supabase
       .from("partidos")
       .select(
-        "id, fecha, fase, goles_local, goles_visitante, eliminado, local:local_id(nombre, pais), visitante:visitante_id(nombre, pais)"
+        "id, fecha, fase, goles_local, goles_visitante, penales_local, penales_visitante, eliminado, local:local_id(nombre, pais), visitante:visitante_id(nombre, pais)"
       )
       .eq("competicion_id", id)
       .order("fecha", { ascending: false });
@@ -160,7 +163,12 @@ export default function HistorialAdminPage() {
                     <span className="text-xs opacity-60">({p.local?.pais ?? "—"})</span>
                   </td>
                   <td className="px-3 py-2 text-center font-display text-base">
-                    {p.goles_local} - {p.goles_visitante}
+                    <Marcador
+                      golesLocal={p.goles_local}
+                      golesVisitante={p.goles_visitante}
+                      penalesLocal={p.penales_local}
+                      penalesVisitante={p.penales_visitante}
+                    />
                   </td>
                   <td className="px-3 py-2">
                     {p.visitante?.nombre ?? "—"}{" "}

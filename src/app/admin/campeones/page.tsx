@@ -103,6 +103,8 @@ export default function CampeonesAdminPage() {
 
     if (filtro === "holanda") {
       consulta = consulta.eq("pais", "Holanda");
+    } else if (filtro === "espana") {
+      consulta = consulta.eq("pais", "España");
     } else if (filtro === "europa") {
       consulta = consulta.eq("confederacion", "UEFA");
     }

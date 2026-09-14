@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { getFiltroClubes, getRondas, RondaOpcion } from "@/lib/competiciones";
 import BuscadorClub, { ClubOpcion } from "@/components/BuscadorClub";
+import Marcador from "@/components/Marcador";
 
 type CompeticionOpcion = { id: string; nombre: string; slug: string };
 
@@ -14,6 +15,8 @@ type FilaLote = {
   visitanteId: string;
   golesLocal: number;
   golesVisitante: number;
+  penalesLocal: number | null;
+  penalesVisitante: number | null;
   incluir: boolean;
   localTexto: string | null;
   visitanteTexto: string | null;
@@ -32,6 +35,9 @@ export default function ResultadosAdminPage() {
   const [visitanteId, setVisitanteId] = useState("");
   const [golesLocal, setGolesLocal] = useState(0);
   const [golesVisitante, setGolesVisitante] = useState(0);
+  const [huboPenales, setHuboPenales] = useState(false);
+  const [penalesLocal, setPenalesLocal] = useState(0);
+  const [penalesVisitante, setPenalesVisitante] = useState(0);
   const [foto, setFoto] = useState<File | null>(null);
 
   const [mensaje, setMensaje] = useState<string | null>(null);
@@ -79,6 +85,8 @@ export default function ResultadosAdminPage() {
 
     if (filtro === "holanda") {
       consulta = consulta.eq("pais", "Holanda");
+    } else if (filtro === "espana") {
+      consulta = consulta.eq("pais", "España");
     } else if (filtro === "europa") {
       consulta = consulta.eq("confederacion", "UEFA");
     }
@@ -92,6 +100,10 @@ export default function ResultadosAdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [competicionId, competiciones]);
 
+  useEffect(() => {
+    if (golesLocal !== golesVisitante) setHuboPenales(false);
+  }, [golesLocal, golesVisitante]);
+
   async function guardarResultado(e: React.FormEvent) {
     e.preventDefault();
     setMensaje(null);
@@ -102,6 +114,14 @@ export default function ResultadosAdminPage() {
     }
     if (localId === visitanteId) {
       setMensaje("El club local y el visitante no pueden ser el mismo.");
+      return;
+    }
+    if (huboPenales && golesLocal !== golesVisitante) {
+      setMensaje("Los penales solo aplican si el marcador quedó igualado.");
+      return;
+    }
+    if (huboPenales && penalesLocal === penalesVisitante) {
+      setMensaje("Los penales no pueden terminar empatados — alguien tuvo que ganar.");
       return;
     }
 
@@ -138,6 +158,8 @@ export default function ResultadosAdminPage() {
       visitante_id: visitanteId,
       goles_local: golesLocal,
       goles_visitante: golesVisitante,
+      penales_local: huboPenales ? penalesLocal : null,
+      penales_visitante: huboPenales ? penalesVisitante : null,
       imagen_evidencia: imagenUrl,
       cargado_por_ia: usoIA,
     });
@@ -152,6 +174,9 @@ export default function ResultadosAdminPage() {
     setMensaje("Resultado guardado. El ranking se actualizó automáticamente.");
     setGolesLocal(0);
     setGolesVisitante(0);
+    setHuboPenales(false);
+    setPenalesLocal(0);
+    setPenalesVisitante(0);
     setFoto(null);
     setUsoIA(false);
   }
@@ -191,6 +216,8 @@ export default function ResultadosAdminPage() {
         visitante_texto: string | null;
         goles_local: number | null;
         goles_visitante: number | null;
+        penales_local: number | null;
+        penales_visitante: number | null;
       }> = datos.resultados ?? [];
 
       if (resultados.length === 0) {
@@ -212,6 +239,13 @@ export default function ResultadosAdminPage() {
         }
         if (typeof r.goles_local === "number") setGolesLocal(r.goles_local);
         if (typeof r.goles_visitante === "number") setGolesVisitante(r.goles_visitante);
+        if (typeof r.penales_local === "number" && typeof r.penales_visitante === "number") {
+          setHuboPenales(true);
+          setPenalesLocal(r.penales_local);
+          setPenalesVisitante(r.penales_visitante);
+        } else {
+          setHuboPenales(false);
+        }
 
         if (identificados === 2) {
           setMensajeIA("Listo — revisa que esté todo bien antes de guardar.");
@@ -232,6 +266,8 @@ export default function ResultadosAdminPage() {
         visitanteId: r.visitante_id ?? "",
         golesLocal: typeof r.goles_local === "number" ? r.goles_local : 0,
         golesVisitante: typeof r.goles_visitante === "number" ? r.goles_visitante : 0,
+        penalesLocal: typeof r.penales_local === "number" ? r.penales_local : null,
+        penalesVisitante: typeof r.penales_visitante === "number" ? r.penales_visitante : null,
         incluir: Boolean(r.local_id && r.visitante_id),
         localTexto: r.local_texto ?? null,
         visitanteTexto: r.visitante_texto ?? null,
@@ -284,6 +320,10 @@ export default function ResultadosAdminPage() {
         setResumenLote("Hay una fila con el mismo equipo como local y visitante.");
         return;
       }
+      if (f.penalesLocal !== null && f.penalesVisitante !== null && f.penalesLocal === f.penalesVisitante) {
+        setResumenLote("Hay una fila con penales empatados — alguien tuvo que ganar.");
+        return;
+      }
     }
 
     setGuardandoLote(true);
@@ -302,6 +342,8 @@ export default function ResultadosAdminPage() {
         visitante_id: f.visitanteId,
         goles_local: f.golesLocal,
         goles_visitante: f.golesVisitante,
+        penales_local: f.penalesLocal,
+        penales_visitante: f.penalesVisitante,
         imagen_evidencia: null,
         cargado_por_ia: true,
       });
@@ -359,6 +401,7 @@ export default function ResultadosAdminPage() {
           {competicionId && (
             <p className="text-xs text-tinta/50 mt-1">
               {filtro === "holanda" && "Mostrando solo clubes de Holanda."}
+              {filtro === "espana" && "Mostrando solo clubes de España."}
               {filtro === "europa" && "Mostrando clubes europeos (incluye Holanda)."}
               {filtro === "mundial" && "Mostrando clubes de todo el mundo."}
             </p>
@@ -446,10 +489,57 @@ export default function ResultadosAdminPage() {
               </div>
             </div>
 
+            {golesLocal === golesVisitante && (
+              <div className="border border-tinta/10 rounded p-3 bg-crema/60">
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <input
+                    type="checkbox"
+                    checked={huboPenales}
+                    onChange={(e) => setHuboPenales(e.target.checked)}
+                  />
+                  Se definió por penales
+                </label>
+                {huboPenales && (
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Penales local</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={penalesLocal}
+                        onChange={(e) => setPenalesLocal(Number(e.target.value))}
+                        className="w-full border border-tinta/20 rounded px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Penales visitante</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={penalesVisitante}
+                        onChange={(e) => setPenalesVisitante(Number(e.target.value))}
+                        className="w-full border border-tinta/20 rounded px-3 py-2"
+                      />
+                    </div>
+                  </div>
+                )}
+                <p className="text-xs text-tinta/40 mt-1">
+                  Ganar en tiempo reglamentario suma 3 puntos. Ganar por
+                  penales (tras empate) suma solo 2 puntos al ranking.
+                </p>
+              </div>
+            )}
+
             {clubLocal && clubVisitante && (
               <p className="text-center bg-campo text-crema rounded p-3 font-display text-lg break-words">
-                {clubLocal.nombre} ({clubLocal.pais}) {golesLocal} - {golesVisitante} ({clubVisitante.pais}){" "}
-                {clubVisitante.nombre}
+                {clubLocal.nombre} ({clubLocal.pais}){" "}
+                <Marcador
+                  golesLocal={golesLocal}
+                  golesVisitante={golesVisitante}
+                  penalesLocal={huboPenales ? penalesLocal : null}
+                  penalesVisitante={huboPenales ? penalesVisitante : null}
+                />{" "}
+                ({clubVisitante.pais}) {clubVisitante.nombre}
               </p>
             )}
           </>
@@ -563,6 +653,46 @@ export default function ResultadosAdminPage() {
                       />
                     </div>
                   </div>
+
+                  {f.golesLocal === f.golesVisitante && (
+                    <div className="border border-tinta/10 rounded p-2 bg-crema/60">
+                      <label className="flex items-center gap-2 text-xs font-medium">
+                        <input
+                          type="checkbox"
+                          checked={f.penalesLocal !== null && f.penalesVisitante !== null}
+                          onChange={(e) =>
+                            actualizarFilaLote(f.clave, {
+                              penalesLocal: e.target.checked ? 0 : null,
+                              penalesVisitante: e.target.checked ? 0 : null,
+                            })
+                          }
+                        />
+                        Se definió por penales
+                      </label>
+                      {f.penalesLocal !== null && f.penalesVisitante !== null && (
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <input
+                            type="number"
+                            min={0}
+                            value={f.penalesLocal}
+                            onChange={(e) => actualizarFilaLote(f.clave, { penalesLocal: Number(e.target.value) })}
+                            placeholder="Penales local"
+                            className="w-full border border-tinta/20 rounded px-2 py-1.5 text-sm"
+                          />
+                          <input
+                            type="number"
+                            min={0}
+                            value={f.penalesVisitante}
+                            onChange={(e) =>
+                              actualizarFilaLote(f.clave, { penalesVisitante: Number(e.target.value) })
+                            }
+                            placeholder="Penales visitante"
+                            className="w-full border border-tinta/20 rounded px-2 py-1.5 text-sm"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

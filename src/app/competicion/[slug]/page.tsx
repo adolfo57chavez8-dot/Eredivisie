@@ -44,14 +44,14 @@ export default async function CompeticionPage({
       supabase
         .from("finales")
         .select(
-          "anio, goles_local, goles_visitante, pais_local, pais_visitante, conf_local, conf_visitante, local:club_local_id(nombre), visitante:club_visitante_id(nombre)"
+          "anio, goles_local, goles_visitante, penales_local, penales_visitante, pais_local, pais_visitante, conf_local, conf_visitante, local:club_local_id(nombre), visitante:club_visitante_id(nombre)"
         )
         .eq("competicion_id", competicion.id)
         .eq("eliminado", false),
       supabase
         .from("partidos")
         .select(
-          "fecha, fase, ronda, goles_local, goles_visitante, local:local_id(nombre, pais), visitante:visitante_id(nombre, pais)"
+          "fecha, fase, ronda, goles_local, goles_visitante, penales_local, penales_visitante, local:local_id(nombre, pais), visitante:visitante_id(nombre, pais)"
         )
         .eq("competicion_id", competicion.id)
         .eq("eliminado", false)
@@ -183,6 +183,8 @@ export default async function CompeticionPage({
             visitante: f.visitante?.nombre ?? "—",
             goles_local: f.goles_local,
             goles_visitante: f.goles_visitante,
+            penales_local: f.penales_local,
+            penales_visitante: f.penales_visitante,
             pais_local: f.pais_local,
             pais_visitante: f.pais_visitante,
             conf_local: f.conf_local,
@@ -205,6 +207,8 @@ export default async function CompeticionPage({
             paisVisitante: p.visitante?.pais ?? "—",
             golesLocal: p.goles_local,
             golesVisitante: p.goles_visitante,
+            penalesLocal: p.penales_local,
+            penalesVisitante: p.penales_visitante,
           }))}
         />
       </section>
